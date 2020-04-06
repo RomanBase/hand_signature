@@ -49,8 +49,8 @@ class HandSignaturePaint extends StatefulWidget {
   const HandSignaturePaint({
     Key key,
     this.control,
-    this.color,
-    this.width,
+    this.color: Colors.black,
+    this.width: 6.0,
     this.onSize,
   }) : super(key: key);
 

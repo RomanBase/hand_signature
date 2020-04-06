@@ -27,7 +27,26 @@ class OffsetPoint {
     this.location,
   ) : timestamp = DateTime.now().millisecondsSinceEpoch;
 
-  double distanceTo(OffsetPoint other) => math.sqrt(math.pow(location.dx - other.location.dx, 2) + math.pow(location.dy - other.location.dy, 2));
+  Offset axisDistanceTo(OffsetPoint other) => other.location - location;
+
+  double distanceTo(OffsetPoint other) {
+    final len = axisDistanceTo(other);
+
+    return math.sqrt(len.dx * len.dx + len.dy * len.dy);
+  }
+
+  double angleTo(OffsetPoint other) {
+    final len = axisDistanceTo(other);
+
+    return math.atan2(len.dy, len.dx);
+  }
+
+  Offset directionTo(OffsetPoint other) {
+    final len = axisDistanceTo(other);
+    final m = distanceTo(other);
+
+    return Offset(len.dx / m, len.dy / m);
+  }
 
   velocityFrom(OffsetPoint other) => timestamp != other.timestamp ? this.distanceTo(other) / (timestamp - other.timestamp) : 0;
 
@@ -46,60 +65,38 @@ class SingleCubicLine {
   final Offset controlPoint2;
   final Offset end;
 
-  SingleCubicLine({
+  const SingleCubicLine({
     this.start,
     this.controlPoint1,
     this.controlPoint2,
     this.end,
   });
 
-  factory SingleCubicLine.from(OffsetPoint a, OffsetPoint c1, OffsetPoint c2, OffsetPoint b) {
-    return SingleCubicLine(
-      start: a.location,
-      controlPoint1: calculateControlPoints(a, c1, c2)[1],
-      controlPoint2: calculateControlPoints(c1, c2, b)[0],
-      end: b.location,
-    );
-  }
+  static Offset softCP(OffsetPoint current, {OffsetPoint previous, OffsetPoint next, bool reverse: false, double smoothing: 0.2}) {
+    previous ??= current;
+    next ??= current;
 
-  static List<Offset> calculateControlPoints(OffsetPoint s1, OffsetPoint s2, OffsetPoint s3) {
-    final dx1 = s1.x - s2.x;
-    final dy1 = s1.y - s2.y;
-    final dx2 = s2.x - s3.x;
-    final dy2 = s2.y - s3.y;
+    final angle = previous.angleTo(next) + (reverse ? math.pi : 0);
+    final length = previous.distanceTo(next) * smoothing;
 
-    final m1 = Offset((s1.x + s2.x) / 2.0, (s1.y + s2.y) / 2.0);
-    final m2 = Offset((s2.x + s3.x) / 2.0, (s2.y + s3.y) / 2.0);
+    final x = current.x + math.cos(angle) * length;
+    final y = current.y + math.sin(angle) * length;
 
-    final l1 = math.sqrt(dx1 * dx1 + dy1 * dy1);
-    final l2 = math.sqrt(dx2 * dx2 + dy2 * dy2);
-
-    final dxm = m1.dx - m2.dx;
-    final dym = m1.dy - m2.dy;
-
-    final k = l2 / (l1 + l2);
-    final cm = Offset(m2.dx + dxm * k, m2.dy + dym * k);
-
-    final tx = s2.x - cm.dx;
-    final ty = s2.y - cm.dy;
-
-    return [
-      Offset(m1.dx + tx, m1.dy + ty),
-      Offset(m2.dy + tx, m2.dy + ty),
-    ];
+    return Offset(x, y);
   }
 }
 
 class CubicPath {
   final _raw = List<OffsetPoint>();
+  final _cp = List<Offset>();
 
   Offset get _origin => _raw.isNotEmpty ? _raw[0].location : null;
 
   OffsetPoint get _lastPoint => _raw.isNotEmpty ? _raw[_raw.length - 1] : null;
 
-  final threshold = 1.0;
+  final threshold = 3.0;
 
-  final _path = Path();
+  Path _path = Path();
 
   Path getCurrentPath() => Path()..addPath(_path, Offset.zero);
 
@@ -119,32 +116,44 @@ class CubicPath {
 
     _raw.add(nextPoint);
 
-    final length = _raw.length;
-    if (length > 3) {
-      final curve = SingleCubicLine.from(
-        _raw[length - 4],
-        _raw[length - 3],
-        _raw[length - 2],
-        _raw[length - 1],
-      );
+    _path = Path()..moveTo(_raw[0].x, _raw[0].y);
+    _cp.clear();
 
-      if (length % 4 == 0) {
-        _path.cubicTo(
-          curve.controlPoint1.dx,
-          curve.controlPoint1.dy,
-          curve.controlPoint2.dx,
-          curve.controlPoint2.dy,
-          curve.end.dx,
-          curve.end.dy,
-        );
-
-        return null;
-      }
-
-      return curve;
+    if (_raw.length < 2) {
+      return null;
     }
 
-    return null;
+    for (int i = 0; i < _raw.length - 1; i++) {
+      final start = _raw[i];
+      final end = _raw[i + 1];
+
+      final prev = i > 0 ? _raw[i - 1] : start;
+      final next = i < _raw.length - 2 ? _raw[i + 2] : end;
+
+      final cpStart = SingleCubicLine.softCP(
+        start,
+        previous: prev,
+        next: end,
+      );
+
+      final cpEnd = SingleCubicLine.softCP(
+        end,
+        previous: start,
+        next: next,
+        reverse: true,
+      );
+
+      _path.cubicTo(
+        cpStart.dx,
+        cpStart.dy,
+        cpEnd.dx,
+        cpEnd.dy,
+        end.x,
+        end.y,
+      );
+    }
+
+    return SingleCubicLine();
   }
 
   void end({Offset point}) {}
@@ -155,6 +164,8 @@ class HandSignatureControl extends ChangeNotifier {
   final _rawData = List<Offset>();
 
   List<Path> get paths => _pathData;
+
+  List<Offset> get points => _rawData;
 
   CubicPath _activePath;
 
@@ -182,6 +193,9 @@ class HandSignatureControl extends ChangeNotifier {
     _rawData.add(point);
     _activePart = _activePath.add(point);
 
+    _pathData.removeLast();
+    _pathData.add(_activePath._path);
+
     notifyListeners();
   }
 
@@ -189,8 +203,6 @@ class HandSignatureControl extends ChangeNotifier {
     assert(hasActivePath);
 
     _activePath.end(point: point);
-
-    //_pathData.add(_activePath._path);
     _activePath = null;
     _activePart = null;
 
@@ -199,14 +211,14 @@ class HandSignatureControl extends ChangeNotifier {
 
   void clear() {
     _pathData.clear();
+    _rawData.clear();
   }
 
   @override
   void dispose() {
     super.dispose();
 
-    _pathData.clear();
-    _rawData.clear();
+    clear();
     _activePath = null;
     _activePart = null;
   }
