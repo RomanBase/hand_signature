@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:hand_signature/path_math.dart';
 
 class SignaturePaintParams {
   final Color color;
@@ -15,19 +16,22 @@ class SignaturePaintParams {
   const SignaturePaintParams(this.color, this.width);
 }
 
-class OffsetPoint {
-  final Offset location;
+class OffsetPoint extends Offset {
   final int timestamp;
 
-  double get x => location.dx;
+  OffsetPoint({
+    double dx,
+    double dy,
+    this.timestamp,
+  }) : super(dx, dy);
 
-  double get y => location.dy;
+  factory OffsetPoint.from(Offset offset) => OffsetPoint(
+        dx: offset.dx,
+        dy: offset.dy,
+        timestamp: DateTime.now().millisecondsSinceEpoch,
+      );
 
-  OffsetPoint(
-    this.location,
-  ) : timestamp = DateTime.now().millisecondsSinceEpoch;
-
-  Offset axisDistanceTo(OffsetPoint other) => other.location - location;
+  Offset axisDistanceTo(OffsetPoint other) => other - this;
 
   double distanceTo(OffsetPoint other) {
     final len = axisDistanceTo(other);
@@ -51,21 +55,39 @@ class OffsetPoint {
   double velocityFrom(OffsetPoint other) => timestamp != other.timestamp ? this.distanceTo(other) / (timestamp - other.timestamp) : 0.0;
 
   @override
-  bool operator ==(other) {
-    return other is OffsetPoint && other.location == location && other.timestamp == timestamp;
+  OffsetPoint translate(double translateX, double translateY) {
+    return OffsetPoint(
+      dx: dx + translateX,
+      dy: dy + translateY,
+      timestamp: timestamp,
+    );
   }
 
   @override
-  int get hashCode => hashValues(location, timestamp);
+  OffsetPoint scale(double scaleX, double scaleY) {
+    return OffsetPoint(
+      dx: dx * scaleX,
+      dy: dy * scaleY,
+      timestamp: timestamp,
+    );
+  }
+
+  @override
+  bool operator ==(other) {
+    return other is OffsetPoint && other.dx == dx && other.dy == dy && other.timestamp == timestamp;
+  }
+
+  @override
+  int get hashCode => hashValues(super.hashCode, timestamp);
 }
 
-class SingleCubicLine {
+class CubicLine {
   final Offset start;
   final Offset controlPoint1;
   final Offset controlPoint2;
   final Offset end;
 
-  const SingleCubicLine({
+  const CubicLine({
     this.start,
     this.controlPoint1,
     this.controlPoint2,
@@ -79,8 +101,8 @@ class SingleCubicLine {
     final angle = previous.angleTo(next) + (reverse ? math.pi : 0);
     final length = previous.distanceTo(next) * smoothing;
 
-    final x = current.x + math.cos(angle) * length;
-    final y = current.y + math.sin(angle) * length;
+    final x = current.dx + math.cos(angle) * length;
+    final y = current.dy + math.sin(angle) * length;
 
     return Offset(x, y);
   }
@@ -89,33 +111,38 @@ class SingleCubicLine {
 class CubicPath {
   final _raw = List<OffsetPoint>();
 
-  Offset get _origin => _raw.isNotEmpty ? _raw[0].location : null;
+  Offset get _origin => _raw.isNotEmpty ? _raw[0] : null;
 
   OffsetPoint get _lastPoint => _raw.isNotEmpty ? _raw[_raw.length - 1] : null;
 
+  bool get isFilled => _raw.isNotEmpty;
+
   final threshold = 3.0;
 
-  final _path = Path();
+  Path _path;
 
-  Path getCurrentPath() => Path()..addPath(_path, Offset.zero);
+  Path begin(Offset point) {
+    assert(_path == null);
 
-  void begin(Offset point) {
-    _raw.add(OffsetPoint(point));
+    _path = Path();
+    _raw.add(OffsetPoint.from(point));
     _path.moveTo(point.dx, point.dy);
+
+    return _path;
   }
 
-  SingleCubicLine add(Offset point) {
+  void add(Offset point) {
     assert(_origin != null);
 
-    final nextPoint = OffsetPoint(point);
+    final nextPoint = point is OffsetPoint ? point : OffsetPoint.from(point);
 
     if (_lastPoint.distanceTo(nextPoint) < threshold) {
-      return null;
+      return;
     }
 
     _raw.add(nextPoint);
     if (_raw.length < 2) {
-      return null;
+      return;
     }
 
     int i = _raw.length - 2;
@@ -126,13 +153,13 @@ class CubicPath {
     final prev = i > 0 ? _raw[i - 1] : start;
     final next = i < _raw.length - 2 ? _raw[i + 2] : end;
 
-    final cpStart = SingleCubicLine.softCP(
+    final cpStart = CubicLine.softCP(
       start,
       previous: prev,
       next: end,
     );
 
-    final cpEnd = SingleCubicLine.softCP(
+    final cpEnd = CubicLine.softCP(
       end,
       previous: start,
       next: next,
@@ -144,11 +171,9 @@ class CubicPath {
       cpStart.dy,
       cpEnd.dx,
       cpEnd.dy,
-      end.x,
-      end.y,
+      end.dx,
+      end.dy,
     );
-
-    return SingleCubicLine();
   }
 
   bool end({Offset point}) {
@@ -162,52 +187,66 @@ class CubicPath {
 
     if (_raw.length < 2) {
       _path.cubicTo(
-        _raw[0].x,
-        _raw[0].y,
-        _raw[0].x,
-        _raw[0].y,
-        _raw[0].x,
-        _raw[0].y,
+        _raw[0].dx,
+        _raw[0].dy,
+        _raw[0].dx,
+        _raw[0].dy,
+        _raw[0].dx,
+        _raw[0].dy,
       );
     }
 
     return true;
   }
+
+  Path setScale(double ratio) {
+    if (!isFilled) {
+      return null;
+    }
+
+    final data = OffsetMath.scale(_raw, ratio);
+
+    _raw.clear();
+    _path = null;
+
+    begin(data[0]);
+    data.forEach((point) => add(point));
+    end();
+
+    return _path;
+  }
 }
 
 class HandSignatureControl extends ChangeNotifier {
   final _pathData = List<Path>();
-  final _rawData = List<Offset>();
+  final _rawData = List<CubicPath>();
 
   List<Path> get paths => _pathData;
-
-  List<Offset> get points => _rawData;
 
   CubicPath _activePath;
 
   bool get hasActivePath => _activePath != null;
 
-  SingleCubicLine _activePart;
-
-  bool get hasActivePart => _activePart != null;
+  bool get isFilled => _rawData.isNotEmpty;
 
   SignaturePaintParams params;
+
+  Size _areaSize = Size.zero;
 
   void startPath(Offset point) {
     assert(!hasActivePath);
 
-    _rawData.add(point);
     _activePath = CubicPath();
     _activePath.begin(point);
 
+    _rawData.add(_activePath);
     _pathData.add(_activePath._path);
   }
 
   void alterPath(Offset point) {
     assert(hasActivePath);
 
-    _rawData.add(point);
-    _activePart = _activePath.add(point);
+    _activePath.add(point);
 
     notifyListeners();
   }
@@ -216,18 +255,59 @@ class HandSignatureControl extends ChangeNotifier {
     assert(hasActivePath);
 
     if (!_activePath.end(point: point)) {
+      _rawData.removeLast();
       _pathData.removeLast();
     }
 
     _activePath = null;
-    _activePart = null;
 
     notifyListeners();
   }
 
   void clear() {
-    _pathData.clear();
     _rawData.clear();
+    _pathData.clear();
+
+    notifyListeners();
+  }
+
+  bool notifyDimension(Size size) {
+    if (_areaSize == size) {
+      return false;
+    }
+
+    if (_areaSize.isEmpty || _areaSize.width == size.width || _areaSize.height == size.height) {
+      _areaSize = size;
+      return false;
+    }
+
+    if (hasActivePath) {
+      closePath();
+    }
+
+    if (!isFilled) {
+      _areaSize = size;
+      return false;
+    }
+
+    //TODO: currently works only when aspect ratio stays same..
+    final ratioX = size.width / _areaSize.width;
+    final ratioY = size.height / _areaSize.height;
+    final scale = math.min(ratioX, ratioY);
+
+    _areaSize = size;
+
+    _pathData.clear();
+    _rawData.forEach((path) {
+      final data = path.setScale(scale);
+      if (data != null) {
+        _pathData.add(data);
+      }
+    });
+
+    Future.delayed(Duration(), () => notifyListeners());
+
+    return true;
   }
 
   @override
@@ -236,6 +316,5 @@ class HandSignatureControl extends ChangeNotifier {
 
     clear();
     _activePath = null;
-    _activePart = null;
   }
 }

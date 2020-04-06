@@ -20,12 +20,17 @@ class MyApp extends StatelessWidget {
           child: Column(
             children: <Widget>[
               Expanded(
-                child: Container(
-                  constraints: BoxConstraints.expand(),
-                  margin: EdgeInsets.all(16.0),
-                  color: Colors.white,
-                  child: HandSignaturePainterView(
-                    control: control,
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: 2.0,
+                    child: Container(
+                      constraints: BoxConstraints.expand(),
+                      margin: EdgeInsets.all(16.0),
+                      color: Colors.white,
+                      child: HandSignaturePainterView(
+                        control: control,
+                      ),
+                    ),
                   ),
                 ),
               ),
