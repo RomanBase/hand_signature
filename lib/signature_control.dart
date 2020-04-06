@@ -48,7 +48,7 @@ class OffsetPoint {
     return Offset(len.dx / m, len.dy / m);
   }
 
-  velocityFrom(OffsetPoint other) => timestamp != other.timestamp ? this.distanceTo(other) / (timestamp - other.timestamp) : 0;
+  double velocityFrom(OffsetPoint other) => timestamp != other.timestamp ? this.distanceTo(other) / (timestamp - other.timestamp) : 0.0;
 
   @override
   bool operator ==(other) {
@@ -88,7 +88,6 @@ class SingleCubicLine {
 
 class CubicPath {
   final _raw = List<OffsetPoint>();
-  final _cp = List<Offset>();
 
   Offset get _origin => _raw.isNotEmpty ? _raw[0].location : null;
 
@@ -96,7 +95,7 @@ class CubicPath {
 
   final threshold = 3.0;
 
-  Path _path = Path();
+  final _path = Path();
 
   Path getCurrentPath() => Path()..addPath(_path, Offset.zero);
 
@@ -115,48 +114,65 @@ class CubicPath {
     }
 
     _raw.add(nextPoint);
-
-    _path = Path()..moveTo(_raw[0].x, _raw[0].y);
-    _cp.clear();
-
     if (_raw.length < 2) {
       return null;
     }
 
-    for (int i = 0; i < _raw.length - 1; i++) {
-      final start = _raw[i];
-      final end = _raw[i + 1];
+    int i = _raw.length - 2;
 
-      final prev = i > 0 ? _raw[i - 1] : start;
-      final next = i < _raw.length - 2 ? _raw[i + 2] : end;
+    final start = _raw[i];
+    final end = _raw[i + 1];
 
-      final cpStart = SingleCubicLine.softCP(
-        start,
-        previous: prev,
-        next: end,
-      );
+    final prev = i > 0 ? _raw[i - 1] : start;
+    final next = i < _raw.length - 2 ? _raw[i + 2] : end;
 
-      final cpEnd = SingleCubicLine.softCP(
-        end,
-        previous: start,
-        next: next,
-        reverse: true,
-      );
+    final cpStart = SingleCubicLine.softCP(
+      start,
+      previous: prev,
+      next: end,
+    );
 
-      _path.cubicTo(
-        cpStart.dx,
-        cpStart.dy,
-        cpEnd.dx,
-        cpEnd.dy,
-        end.x,
-        end.y,
-      );
-    }
+    final cpEnd = SingleCubicLine.softCP(
+      end,
+      previous: start,
+      next: next,
+      reverse: true,
+    );
+
+    _path.cubicTo(
+      cpStart.dx,
+      cpStart.dy,
+      cpEnd.dx,
+      cpEnd.dy,
+      end.x,
+      end.y,
+    );
 
     return SingleCubicLine();
   }
 
-  void end({Offset point}) {}
+  bool end({Offset point}) {
+    if (point != null) {
+      add(point);
+    }
+
+    if (_raw.isEmpty) {
+      return false;
+    }
+
+    if (_raw.length < 2) {
+      _path.cubicTo(
+        _raw[0].x,
+        _raw[0].y,
+        _raw[0].x,
+        _raw[0].y,
+        _raw[0].x,
+        _raw[0].y,
+      );
+    }
+
+    return true;
+  }
 }
 
 class HandSignatureControl extends ChangeNotifier {
@@ -193,16 +209,16 @@ class HandSignatureControl extends ChangeNotifier {
     _rawData.add(point);
     _activePart = _activePath.add(point);
 
-    _pathData.removeLast();
-    _pathData.add(_activePath._path);
-
     notifyListeners();
   }
 
   void closePath({Offset point}) {
     assert(hasActivePath);
 
-    _activePath.end(point: point);
+    if (!_activePath.end(point: point)) {
+      _pathData.removeLast();
+    }
+
     _activePath = null;
     _activePart = null;
 
