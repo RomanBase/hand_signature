@@ -1,9 +1,12 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:hand_signature/path_math.dart';
+
+import 'signature_painter.dart';
 
 class SignaturePaintParams {
   final Color color;
@@ -94,6 +97,7 @@ class CubicLine {
     this.end,
   });
 
+  //TODO: smoothing based on distance with smoothRatio multiplier
   static Offset softCP(OffsetPoint current, {OffsetPoint previous, OffsetPoint next, bool reverse: false, double smoothing: 0.2}) {
     previous ??= current;
     next ??= current;
@@ -117,9 +121,16 @@ class CubicPath {
 
   bool get isFilled => _raw.isNotEmpty;
 
-  final threshold = 3.0;
+  final threshold;
+  final smoothRatio;
 
   Path _path;
+  Path _temp;
+
+  CubicPath({
+    this.threshold: 3.0,
+    this.smoothRatio: 0.2,
+  });
 
   Path begin(Offset point) {
     assert(_path == null);
@@ -127,6 +138,8 @@ class CubicPath {
     _path = Path();
     _raw.add(OffsetPoint.from(point));
     _path.moveTo(point.dx, point.dy);
+
+    _temp = _dot(point);
 
     return _path;
   }
@@ -137,32 +150,61 @@ class CubicPath {
     final nextPoint = point is OffsetPoint ? point : OffsetPoint.from(point);
 
     if (_lastPoint.distanceTo(nextPoint) < threshold) {
+      if (_raw.length > 1) {
+        _temp = _line(
+          _raw[_raw.length - 2],
+          nextPoint,
+          CubicLine.softCP(
+            _raw[_raw.length - 1],
+            previous: _raw[_raw.length - 2],
+            next: nextPoint,
+            smoothing: smoothRatio,
+          ),
+          CubicLine.softCP(
+            nextPoint,
+            previous: _raw[_raw.length - 1],
+            smoothing: smoothRatio,
+            reverse: true,
+          ),
+        );
+      } else {
+        _temp = _line(_raw[0], nextPoint);
+      }
+
       return;
     }
 
     _raw.add(nextPoint);
-    if (_raw.length < 2) {
+    int count = _raw.length;
+
+    if (count < 3) {
+      if (count > 1) {
+        _temp = _line(_raw[0], _raw[1]);
+      }
+
       return;
     }
 
-    int i = _raw.length - 2;
+    int i = count - 3;
 
     final start = _raw[i];
     final end = _raw[i + 1];
 
     final prev = i > 0 ? _raw[i - 1] : start;
-    final next = i < _raw.length - 2 ? _raw[i + 2] : end;
+    final next = i < count - 2 ? _raw[i + 2] : end;
 
     final cpStart = CubicLine.softCP(
       start,
       previous: prev,
       next: end,
+      smoothing: smoothRatio,
     );
 
     final cpEnd = CubicLine.softCP(
       end,
       previous: start,
       next: next,
+      smoothing: smoothRatio,
       reverse: true,
     );
 
@@ -174,6 +216,8 @@ class CubicPath {
       end.dx,
       end.dy,
     );
+
+    _temp = _line(end, next);
   }
 
   bool end({Offset point}) {
@@ -181,11 +225,14 @@ class CubicPath {
       add(point);
     }
 
+    _temp = null;
+
     if (_raw.isEmpty) {
       return false;
     }
 
-    if (_raw.length < 2) {
+    // TODO: maybe line with 2 points, or copy _temp ?
+    if (_raw.length < 3) {
       _path.cubicTo(
         _raw[0].dx,
         _raw[0].dy,
@@ -194,10 +241,34 @@ class CubicPath {
         _raw[0].dx,
         _raw[0].dy,
       );
+    } else {
+      // TODO: add last 1/2 points (depends on threshold)
     }
 
     return true;
   }
+
+  Path _dot(Offset point) => Path()
+    ..moveTo(point.dx, point.dy)
+    ..cubicTo(
+      point.dx,
+      point.dy,
+      point.dx,
+      point.dy,
+      point.dx,
+      point.dy,
+    );
+
+  Path _line(Offset start, Offset end, [Offset startCp, Offset endCp]) => Path()
+    ..moveTo(start.dx, start.dy)
+    ..cubicTo(
+      startCp != null ? startCp.dx : (start.dx + end.dx) * 0.5,
+      startCp != null ? startCp.dy : (start.dy + end.dy) * 0.5,
+      endCp != null ? endCp.dx : (start.dx + end.dx) * 0.5,
+      endCp != null ? endCp.dy : (start.dy + end.dy) * 0.5,
+      end.dx,
+      end.dy,
+    );
 
   Path setScale(double ratio) {
     if (!isFilled) {
@@ -221,7 +292,23 @@ class HandSignatureControl extends ChangeNotifier {
   final _pathData = List<Path>();
   final _rawData = List<CubicPath>();
 
-  List<Path> get paths => _pathData;
+  List<Path> get paths {
+    final paths = List.of(_pathData);
+
+    if (_activePath?._temp != null) {
+      paths.add(_activePath._temp);
+    }
+
+    return paths;
+  }
+
+  List<List<Offset>> get _rawList {
+    final list = List<List<Offset>>();
+
+    _rawData.forEach((data) => list.add(data._raw));
+
+    return list;
+  }
 
   CubicPath _activePath;
 
@@ -233,10 +320,22 @@ class HandSignatureControl extends ChangeNotifier {
 
   Size _areaSize = Size.zero;
 
+  final double threshold;
+  final double smoothRatio;
+
+  //TODO: convert smoothRatio to 0-1
+  HandSignatureControl({
+    this.threshold: 3.0,
+    this.smoothRatio: 0.25,
+  });
+
   void startPath(Offset point) {
     assert(!hasActivePath);
 
-    _activePath = CubicPath();
+    _activePath = CubicPath(
+      threshold: threshold,
+      smoothRatio: 0.25,
+    );
     _activePath.begin(point);
 
     _rawData.add(_activePath);
@@ -308,6 +407,45 @@ class HandSignatureControl extends ChangeNotifier {
     Future.delayed(Duration(), () => notifyListeners());
 
     return true;
+  }
+
+  Future<bool> fromSvg(String data) async {
+    //TODO
+    return false;
+  }
+
+  String asSvg({double width: 256.0, double height: 256.0, double border: 0.0}) {
+    //TODO
+    return null;
+  }
+
+  Picture asPicture({double width: 256.0, double height: 256.0}) {
+    final data = OffsetMath.fillOf(_rawList, Rect.fromLTRB(0.0, 0.0, width, height));
+
+    final recorder = PictureRecorder();
+    final painter = HandSignaturePainter(
+      paths: OffsetMath.asPathOf(data),
+      color: params?.color,
+      width: params?.width,
+    );
+
+    final canvas = Canvas(
+      recorder,
+      Rect.fromPoints(
+        Offset(0.0, 0.0),
+        Offset(width, height),
+      ),
+    );
+
+    painter.paint(canvas, Size(width, height));
+
+    return recorder.endRecording();
+  }
+
+  Future<ByteData> asPng({int width: 256, int height: 256}) async {
+    final image = await asPicture(width: width.toDouble(), height: height.toDouble()).toImage(width, height);
+
+    return image.toByteData();
   }
 
   @override
