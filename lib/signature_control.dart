@@ -22,7 +22,7 @@ class SignaturePaintParams {
 class OffsetPoint extends Offset {
   final int timestamp;
 
-  OffsetPoint({
+  const OffsetPoint({
     double dx,
     double dy,
     this.timestamp,
@@ -84,18 +84,23 @@ class OffsetPoint extends Offset {
   int get hashCode => hashValues(super.hashCode, timestamp);
 }
 
-class CubicLine {
+//TODO: override params from Offset
+class CubicLine extends Offset {
   final Offset start;
-  final Offset controlPoint1;
-  final Offset controlPoint2;
+  final Offset cpStart;
+  final Offset cpEnd;
   final Offset end;
+  final double startWidth;
+  final double endWidth;
 
-  const CubicLine({
+  CubicLine({
     this.start,
-    this.controlPoint1,
-    this.controlPoint2,
+    this.cpStart,
+    this.cpEnd,
     this.end,
-  });
+    this.startWidth,
+    this.endWidth,
+  }) : super(start.dx, start.dy);
 
   //TODO: smoothing based on distance with smoothRatio multiplier
   static Offset softCP(OffsetPoint current, {OffsetPoint previous, OffsetPoint next, bool reverse: false, double smoothing: 0.2}) {
@@ -110,10 +115,27 @@ class CubicLine {
 
     return Offset(x, y);
   }
+
+  @override
+  CubicLine scale(double scaleX, double scaleY) => CubicLine(
+        start: start.scale(scaleX, scaleY),
+        cpStart: cpStart.scale(scaleX, scaleY),
+        cpEnd: cpEnd.scale(scaleX, scaleY),
+        end: end.scale(scaleX, scaleY),
+      );
+
+  @override
+  CubicLine translate(double translateX, double translateY) => CubicLine(
+        start: start.translate(translateX, translateY),
+        cpStart: cpStart.translate(translateX, translateY),
+        cpEnd: cpEnd.translate(translateX, translateY),
+        end: end.translate(translateX, translateY),
+      );
 }
 
 class CubicPath {
   final _raw = List<OffsetPoint>();
+  final _rawLine = List<CubicLine>();
 
   Offset get _origin => _raw.isNotEmpty ? _raw[0] : null;
 
@@ -124,6 +146,7 @@ class CubicPath {
   final threshold;
   final smoothRatio;
 
+  //TODO: getters
   Path _path;
   Path _temp;
 
@@ -208,6 +231,13 @@ class CubicPath {
       reverse: true,
     );
 
+    _rawLine.add(CubicLine(
+      start: start,
+      cpStart: cpStart,
+      cpEnd: cpEnd,
+      end: end,
+    ));
+
     _path.cubicTo(
       cpStart.dx,
       cpStart.dy,
@@ -240,6 +270,15 @@ class CubicPath {
         _raw[0].dy,
         _raw[0].dx,
         _raw[0].dy,
+      );
+
+      _rawLine.add(
+        CubicLine(
+          start: _raw[0],
+          cpStart: _raw[0],
+          cpEnd: _raw[0],
+          end: _raw[0],
+        ),
       );
     } else {
       // TODO: add last 1/2 points (depends on threshold)
@@ -278,6 +317,7 @@ class CubicPath {
     final data = OffsetMath.scale(_raw, ratio);
 
     _raw.clear();
+    _rawLine.clear();
     _path = null;
 
     begin(data[0]);
@@ -306,6 +346,14 @@ class HandSignatureControl extends ChangeNotifier {
     final list = List<List<Offset>>();
 
     _rawData.forEach((data) => list.add(data._raw));
+
+    return list;
+  }
+
+  List<List<CubicLine>> get _rawLine {
+    final list = List<List<CubicLine>>();
+
+    _rawData.forEach((data) => list.add(data._rawLine));
 
     return list;
   }
@@ -409,14 +457,32 @@ class HandSignatureControl extends ChangeNotifier {
     return true;
   }
 
-  Future<bool> fromSvg(String data) async {
-    //TODO
-    return false;
-  }
-
   String asSvg({double width: 256.0, double height: 256.0, double border: 0.0}) {
-    //TODO
-    return null;
+    if (!isFilled) {
+      return null;
+    }
+
+    params ??= SignaturePaintParams(Colors.black, 6.0);
+
+    final rect = Rect.fromLTRB(0.0, 0.0, width, height);
+    final bounds = OffsetMath.boundsOf(_rawList);
+    final data = OffsetMath.fillOf(_rawLine, rect, bound: bounds, border: params.width + border);
+
+    final buffer = StringBuffer();
+    buffer.writeln('<?xml version="1.0" encoding="UTF-8" standalone="no"?>');
+    buffer.writeln('<svg width="$width" height="$height" xmlns="http://www.w3.org/2000/svg">');
+
+    buffer.writeln('<g stroke="${params.hexColor}" fill="none" stroke-width="${params.width}" stroke-linecap="round" stroke-linejoin="round" >');
+    data.forEach((line) {
+      buffer.write('<path d="M ${line[0].dx} ${line[0].dy}');
+      line.cast<CubicLine>().forEach((path) => buffer.write(' C ${path.cpStart.dx} ${path.cpStart.dy}, ${path.cpEnd.dx} ${path.cpEnd.dy}, ${path.end.dx} ${path.end.dy}'));
+      buffer.writeln('" />');
+    });
+    buffer.writeln('<\/g>');
+
+    buffer.writeln('<\/svg>');
+
+    return buffer.toString();
   }
 
   Picture asPicture({double width: 256.0, double height: 256.0}) {

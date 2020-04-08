@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class OffsetMath {
   static Rect bounds(List<Offset> data) {
@@ -208,5 +209,25 @@ class OffsetMath {
     data.forEach((path) => output.add(path.transform(transform.storage)));
 
     return output;
+  }
+
+  static List<Path> parseDrawable(DrawableParent root) {
+    final list = List<Path>();
+
+    _parseDrawableRoot(root, list);
+
+    return OffsetMath.translatePathOf(list, -OffsetMath.pathBoundsOf(list).topLeft);
+  }
+
+  static _parseDrawableRoot(DrawableParent root, List<Path> output) {
+    if (root.children != null) {
+      root.children.forEach((drawable) {
+        if (drawable is DrawableShape) {
+          output.add(drawable.path);
+        } else if (drawable is DrawableParent) {
+          _parseDrawableRoot(drawable, output);
+        }
+      });
+    }
   }
 }
