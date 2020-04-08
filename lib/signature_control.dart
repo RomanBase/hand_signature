@@ -11,29 +11,20 @@ import 'signature_painter.dart';
 class SignaturePaintParams {
   final Color color;
   final double width;
+  final double maxWidth;
 
   String get hexColor => '#${color.value.toRadixString(16)}'.replaceRange(1, 3, '');
 
   String get opacity => '${color.opacity}}';
 
-  const SignaturePaintParams(this.color, this.width);
+  const SignaturePaintParams({
+    @required this.color,
+    @required this.width,
+    this.maxWidth,
+  });
 }
 
-class OffsetPoint extends Offset {
-  final int timestamp;
-
-  const OffsetPoint({
-    double dx,
-    double dy,
-    this.timestamp,
-  }) : super(dx, dy);
-
-  factory OffsetPoint.from(Offset offset) => OffsetPoint(
-        dx: offset.dx,
-        dy: offset.dy,
-        timestamp: DateTime.now().millisecondsSinceEpoch,
-      );
-
+extension OffsetEx on Offset {
   Offset axisDistanceTo(OffsetPoint other) => other - this;
 
   double distanceTo(OffsetPoint other) {
@@ -54,6 +45,22 @@ class OffsetPoint extends Offset {
 
     return Offset(len.dx / m, len.dy / m);
   }
+}
+
+class OffsetPoint extends Offset {
+  final int timestamp;
+
+  const OffsetPoint({
+    double dx,
+    double dy,
+    this.timestamp,
+  }) : super(dx, dy);
+
+  factory OffsetPoint.from(Offset offset) => OffsetPoint(
+        dx: offset.dx,
+        dy: offset.dy,
+        timestamp: DateTime.now().microsecondsSinceEpoch,
+      );
 
   double velocityFrom(OffsetPoint other) => timestamp != other.timestamp ? this.distanceTo(other) / (timestamp - other.timestamp) : 0.0;
 
@@ -85,20 +92,16 @@ class OffsetPoint extends Offset {
 }
 
 class CubicLine extends Offset {
-  final Offset start;
+  final OffsetPoint start;
   final Offset cpStart;
   final Offset cpEnd;
-  final Offset end;
-  final double startWidth;
-  final double endWidth;
+  final OffsetPoint end;
 
   CubicLine({
     this.start,
     this.cpStart,
     this.cpEnd,
     this.end,
-    this.startWidth,
-    this.endWidth,
   }) : super(start.dx, start.dy);
 
   //TODO: smoothing based on distance with smoothRatio multiplier
@@ -130,6 +133,33 @@ class CubicLine extends Offset {
         cpEnd: cpEnd.translate(translateX, translateY),
         end: end.translate(translateX, translateY),
       );
+
+  double length({double accuracy: 0.1}) {
+    final steps = (accuracy * 100).toInt();
+
+    double length = 0.0;
+
+    Offset prevPoint = start;
+    for (int i = 1; i < steps; i++) {
+      final t = i / steps;
+
+      final next = point(t);
+
+      length += prevPoint.distanceTo(next);
+      prevPoint = next;
+    }
+
+    return length;
+  }
+
+  Offset point(double t) {
+    final rt = 1.0 - t;
+    return (start * rt * rt * rt) + (cpStart * 3.0 * rt * rt * t) + (cpEnd * 3.0 * rt * t * t) + (end * t * t * t);
+  }
+
+  double velocity({double accuracy: 0.1}) => start.timestamp != end.timestamp ? length(accuracy: accuracy) / (start.timestamp - end.timestamp) : 0.0;
+
+  double combineVelocity(double inVelocity, {double velocityRatio: 0.65}) => velocity() * velocityRatio + (inVelocity * (1.0 - velocityRatio));
 }
 
 class CubicPath {
@@ -528,7 +558,10 @@ class HandSignatureControl extends ChangeNotifier {
       return null;
     }
 
-    params ??= SignaturePaintParams(Colors.black, 6.0);
+    params ??= SignaturePaintParams(
+      color: Colors.black,
+      width: 6.0,
+    );
 
     final rect = Rect.fromLTRB(0.0, 0.0, width, height);
     final bounds = OffsetMath.boundsOf(_rawList);
