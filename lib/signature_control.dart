@@ -263,25 +263,86 @@ class CubicPath {
 
     // TODO: maybe line with 2 points, or copy _temp ?
     if (_raw.length < 3) {
-      _path.cubicTo(
-        _raw[0].dx,
-        _raw[0].dy,
-        _raw[0].dx,
-        _raw[0].dy,
-        _raw[0].dx,
-        _raw[0].dy,
-      );
+      if (_raw.length == 1) {
+        _path.cubicTo(
+          _raw[0].dx,
+          _raw[0].dy,
+          _raw[0].dx,
+          _raw[0].dy,
+          _raw[0].dx,
+          _raw[0].dy,
+        );
 
-      _rawLine.add(
-        CubicLine(
+        _rawLine.add(CubicLine(
           start: _raw[0],
           cpStart: _raw[0],
           cpEnd: _raw[0],
           end: _raw[0],
-        ),
-      );
+        ));
+      } else {
+        _path.cubicTo(
+          _raw[0].dx,
+          _raw[0].dy,
+          _raw[1].dx,
+          _raw[1].dy,
+          _raw[1].dx,
+          _raw[1].dy,
+        );
+
+        _rawLine.add(CubicLine(
+          start: _raw[0],
+          cpStart: _raw[0],
+          cpEnd: _raw[1],
+          end: _raw[1],
+        ));
+      }
     } else {
-      // TODO: add last 1/2 points (depends on threshold)
+      final i = _raw.length - 3;
+
+      final last = CubicLine(
+        start: _raw[i],
+        cpStart: CubicLine.softCP(
+          _raw[i + 1],
+          previous: _raw[i],
+          next: _raw[i + 2],
+          smoothing: smoothRatio,
+        ),
+        cpEnd: CubicLine.softCP(
+          _raw[i + 2],
+          previous: _raw[i + 1],
+          smoothing: smoothRatio,
+          reverse: true,
+        ),
+        end: _raw[i + 1],
+      );
+
+      final end = CubicLine(
+        start: _raw[i + 1],
+        cpStart: _raw[i + 1],
+        cpEnd: _raw[i + 2],
+        end: _raw[i + 2],
+      );
+
+      _path.cubicTo(
+        last.cpStart.dx,
+        last.cpStart.dy,
+        last.cpEnd.dx,
+        last.cpEnd.dy,
+        last.end.dx,
+        last.end.dy,
+      );
+
+      _path.cubicTo(
+        end.cpStart.dx,
+        end.cpStart.dy,
+        end.cpEnd.dx,
+        end.cpEnd.dy,
+        end.end.dx,
+        end.end.dy,
+      );
+
+      _rawLine.add(last);
+      _rawLine.add(end);
     }
 
     return true;
