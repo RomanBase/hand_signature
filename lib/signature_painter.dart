@@ -63,6 +63,7 @@ class _HandSignaturePaintState extends State<HandSignaturePaint> {
   void initState() {
     super.initState();
 
+    widget.control.params = SignaturePaintParams(widget.color, widget.width);
     widget.control.addListener(_updateState);
   }
 

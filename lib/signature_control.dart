@@ -84,7 +84,6 @@ class OffsetPoint extends Offset {
   int get hashCode => hashValues(super.hashCode, timestamp);
 }
 
-//TODO: override params from Offset
 class CubicLine extends Offset {
   final Offset start;
   final Offset cpStart;
@@ -134,8 +133,15 @@ class CubicLine extends Offset {
 }
 
 class CubicPath {
+  final threshold;
+  final smoothRatio;
+
   final _raw = List<OffsetPoint>();
   final _rawLine = List<CubicLine>();
+
+  List<OffsetPoint> get points => _raw;
+
+  List<CubicLine> get lines => _rawLine;
 
   Offset get _origin => _raw.isNotEmpty ? _raw[0] : null;
 
@@ -143,12 +149,12 @@ class CubicPath {
 
   bool get isFilled => _raw.isNotEmpty;
 
-  final threshold;
-  final smoothRatio;
-
-  //TODO: getters
   Path _path;
   Path _temp;
+
+  Path get path => _path;
+
+  Path get tempPath => _temp;
 
   CubicPath({
     this.threshold: 3.0,
@@ -261,7 +267,6 @@ class CubicPath {
       return false;
     }
 
-    // TODO: maybe line with 2 points, or copy _temp ?
     if (_raw.length < 3) {
       if (_raw.length == 1) {
         _path.cubicTo(
