@@ -25,23 +25,23 @@ class SignaturePaintParams {
 }
 
 extension OffsetEx on Offset {
-  Offset axisDistanceTo(OffsetPoint other) => other - this;
+  Offset axisDistanceTo(Offset other) => other - this;
 
-  double distanceTo(OffsetPoint other) {
+  double distanceTo(Offset other) {
     final len = axisDistanceTo(other);
 
     return math.sqrt(len.dx * len.dx + len.dy * len.dy);
   }
 
-  double angleTo(OffsetPoint other) {
+  double angleTo(Offset other) {
     final len = axisDistanceTo(other);
 
     return math.atan2(len.dy, len.dx);
   }
 
-  Offset directionTo(OffsetPoint other) {
+  Offset directionTo(Offset other) {
     final len = axisDistanceTo(other);
-    final m = distanceTo(other);
+    final m = math.sqrt(len.dx * len.dx + len.dy * len.dy);
 
     return Offset(len.dx / m, len.dy / m);
   }
@@ -59,7 +59,7 @@ class OffsetPoint extends Offset {
   factory OffsetPoint.from(Offset offset) => OffsetPoint(
         dx: offset.dx,
         dy: offset.dy,
-        timestamp: DateTime.now().microsecondsSinceEpoch,
+        timestamp: DateTime.now().millisecondsSinceEpoch,
       );
 
   double velocityFrom(OffsetPoint other) => timestamp != other.timestamp ? this.distanceTo(other) / (timestamp - other.timestamp) : 0.0;
@@ -105,15 +105,25 @@ class CubicLine extends Offset {
   }) : super(start.dx, start.dy);
 
   //TODO: smoothing based on distance with smoothRatio multiplier
-  static Offset softCP(OffsetPoint current, {OffsetPoint previous, OffsetPoint next, bool reverse: false, double smoothing: 0.2}) {
+  static Offset softCP(OffsetPoint current, {OffsetPoint previous, OffsetPoint next, bool reverse: false, double smoothing: 0.65}) {
     previous ??= current;
     next ??= current;
 
-    final angle = previous.angleTo(next) + (reverse ? math.pi : 0);
-    final length = previous.distanceTo(next) * smoothing;
+    final sharpness = 1.0 - smoothing;
 
-    final x = current.dx + math.cos(angle) * length;
-    final y = current.dy + math.sin(angle) * length;
+    final dist1 = previous.distanceTo(current);
+    final dist2 = current.distanceTo(next);
+    final dist = dist1 + dist2;
+    final dir1 = current.directionTo(next);
+    final dir2 = current.directionTo(previous);
+    final dir3 = reverse ? next.directionTo(previous) : previous.directionTo(next);
+
+    final velocity = (dist * 0.3 / (next.timestamp - previous.timestamp)).clamp(0.5, 3.0);
+    final ratio = (dist * velocity * smoothing).clamp(0.0, (reverse ? dist2 : dist1) * 0.5);
+
+    final dir = ((reverse ? dir2 : dir1) * sharpness) + (dir3 * smoothing) * ratio;
+    final x = current.dx + dir.dx; //math.cos(angle) * ratio;
+    final y = current.dy + dir.dy; //math.sin(angle) * ratio;
 
     return Offset(x, y);
   }
@@ -134,8 +144,14 @@ class CubicLine extends Offset {
         end: end.translate(translateX, translateY),
       );
 
+  /// 0 - fastest, raw accuracy
+  /// 1 - slowest, most accurate
   double length({double accuracy: 0.1}) {
     final steps = (accuracy * 100).toInt();
+
+    if (steps <= 1) {
+      return start.distanceTo(end);
+    }
 
     double length = 0.0;
 
@@ -157,9 +173,22 @@ class CubicLine extends Offset {
     return (start * rt * rt * rt) + (cpStart * 3.0 * rt * rt * t) + (cpEnd * 3.0 * rt * t * t) + (end * t * t * t);
   }
 
-  double velocity({double accuracy: 0.1}) => start.timestamp != end.timestamp ? length(accuracy: accuracy) / (start.timestamp - end.timestamp) : 0.0;
+  double velocity({double accuracy: 0.0}) => start.timestamp != end.timestamp ? length(accuracy: accuracy) / (end.timestamp - start.timestamp) : 0.0;
 
-  double combineVelocity(double inVelocity, {double velocityRatio: 0.65}) => velocity() * velocityRatio + (inVelocity * (1.0 - velocityRatio));
+  double combineVelocity(double inVelocity, {double velocityRatio: 0.65, double maxFallOf: double.infinity}) {
+    final value = velocity() * velocityRatio + (inVelocity * (1.0 - velocityRatio));
+
+    final dist = (inVelocity - value).abs();
+    if (dist > maxFallOf) {
+      if (value > inVelocity) {
+        return inVelocity + maxFallOf;
+      }
+
+      return inVelocity - maxFallOf;
+    }
+
+    return value;
+  }
 }
 
 class CubicPath {
@@ -188,7 +217,7 @@ class CubicPath {
 
   CubicPath({
     this.threshold: 3.0,
-    this.smoothRatio: 0.2,
+    this.smoothRatio: 0.65,
   });
 
   Path begin(Offset point) {
@@ -246,11 +275,10 @@ class CubicPath {
 
     int i = count - 3;
 
+    final prev = i > 0 ? _raw[i - 1] : _raw[i];
     final start = _raw[i];
     final end = _raw[i + 1];
-
-    final prev = i > 0 ? _raw[i - 1] : start;
-    final next = i < count - 2 ? _raw[i + 2] : end;
+    final next = _raw[i + 2];
 
     final cpStart = CubicLine.softCP(
       start,
@@ -376,7 +404,7 @@ class CubicPath {
         end.end.dy,
       );
 
-      _rawLine.add(last);
+      //_rawLine.add(last);
       _rawLine.add(end);
     }
 
@@ -454,6 +482,14 @@ class HandSignatureControl extends ChangeNotifier {
     return list;
   }
 
+  List<CubicLine> get lines {
+    final list = List<CubicLine>();
+
+    _rawData.forEach((data) => list.addAll(data.lines));
+
+    return list;
+  }
+
   CubicPath _activePath;
 
   bool get hasActivePath => _activePath != null;
@@ -467,10 +503,9 @@ class HandSignatureControl extends ChangeNotifier {
   final double threshold;
   final double smoothRatio;
 
-  //TODO: convert smoothRatio to 0-1
   HandSignatureControl({
     this.threshold: 3.0,
-    this.smoothRatio: 0.25,
+    this.smoothRatio: 0.65,
   });
 
   void startPath(Offset point) {
@@ -478,7 +513,7 @@ class HandSignatureControl extends ChangeNotifier {
 
     _activePath = CubicPath(
       threshold: threshold,
-      smoothRatio: 0.25,
+      smoothRatio: smoothRatio,
     );
     _activePath.begin(point);
 

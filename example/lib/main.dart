@@ -27,13 +27,23 @@ class MyApp extends StatelessWidget {
                     child: Center(
                       child: AspectRatio(
                         aspectRatio: 2.0,
-                        child: Container(
-                          constraints: BoxConstraints.expand(),
-                          margin: EdgeInsets.all(16.0),
-                          color: Colors.white,
-                          child: HandSignaturePainterView(
-                            control: control,
-                          ),
+                        child: Stack(
+                          children: <Widget>[
+                            Container(
+                              constraints: BoxConstraints.expand(),
+                              color: Colors.white,
+                              child: HandSignaturePainterView(
+                                control: control,
+                              ),
+                            ),
+                            CustomPaint(
+                              painter: SignaturePainterCP(
+                                control: control,
+                                cpStart: false,
+                                cpEnd: false,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
