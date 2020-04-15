@@ -39,6 +39,7 @@ class MyApp extends StatelessWidget {
                             CustomPaint(
                               painter: SignaturePainterCP(
                                 control: control,
+                                cp: false,
                                 cpStart: false,
                                 cpEnd: false,
                               ),
@@ -56,7 +57,7 @@ class MyApp extends StatelessWidget {
                       ),
                       RaisedButton(
                         onPressed: () {
-                          final data = control.asSvg();
+                          final data = control.asCubicPathSvg();
                           svg.value = data;
                         },
                         child: Text('svg'),

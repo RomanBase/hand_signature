@@ -16,7 +16,7 @@ class HandSignaturePainterView extends StatelessWidget {
     Key key,
     @required this.control,
     this.color: Colors.black,
-    this.width: 6.0,
+    this.width: 1.0,
     this.placeholder,
   }) : super(key: key);
 
@@ -98,7 +98,7 @@ class HandSignatureView extends StatelessWidget {
             painter: HandSignaturePainter(
               paths: data,
               color: color ?? Colors.black,
-              width: width ?? 6.0,
+              width: width ?? 2.0,
             ),
           ),
         ),

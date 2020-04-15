@@ -1,10 +1,8 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:hand_signature/signature_control.dart';
 
 class LineSignaturePainter extends CustomPainter {
-  final List<CubicLine> paths;
+  final List<CubicPath> paths;
   final Color color;
   final double width;
   final double maxWidth;
@@ -37,46 +35,12 @@ class LineSignaturePainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round
       ..strokeWidth = width;
 
-    double velocity = paths[0].velocity();
-    double startWidth = _width(velocity);
-
-    for (int i = 0; i < paths.length; i++) {
-      final steps = (paths[i].length() * 2.0).floor();
-
-      final combinedVelocity = paths[i].combineVelocity(velocity, maxFallOf: 0.275);
-      final double endWidth = _width(combinedVelocity);
-
-      _drawLine(paths[i], startWidth, endWidth - startWidth, canvas, paint, steps);
-
-      startWidth = endWidth;
-      velocity = combinedVelocity;
-    }
-  }
-
-  double _width(double velocity) {
-    velocity = math.pow(velocity, 3) / 3.0;
-
-    return 1.0 + (maxWidth - width) * (1.0 - velocity.clamp(0.0, 1.0));
-  }
-
-  void _drawLine(CubicLine line, double width, double widthDelta, Canvas canvas, Paint paint, int steps) {
-    Offset start = line.start;
-    for (int i = 0; i < steps; i++) {
-      final t = i / steps;
-      final loc = line.point(t);
-      final size = math.min(maxWidth, width + widthDelta * math.pow(t, 3));
-
-      paint.strokeWidth = size;
-
-      canvas.drawPath(
-        Path()
-          ..moveTo(start.dx, start.dy)
-          ..arcToPoint(loc, rotation: math.pi * 2.0),
-        paint,
-      );
-
-      start = loc;
-    }
+    paths.forEach((path) {
+      path.arcs.forEach((arc) {
+        paint.strokeWidth = width + (maxWidth - width) * arc.size;
+        canvas.drawPath(arc.path, paint);
+      });
+    });
   }
 
   @override
@@ -173,7 +137,7 @@ class _HandSignaturePaintState extends State<HandSignaturePaint> {
   Widget build(BuildContext context) {
     return CustomPaint(
       painter: LineSignaturePainter(
-        paths: widget.control.lines,
+        paths: widget.control.paths,
         color: widget.color,
         width: widget.width,
         onSize: widget.onSize,
@@ -191,6 +155,7 @@ class _HandSignaturePaintState extends State<HandSignaturePaint> {
 
 class SignaturePainterCP extends CustomPainter {
   final HandSignatureControl control;
+  final bool cp;
   final bool cpStart;
   final bool cpEnd;
   final bool dot;
@@ -198,6 +163,7 @@ class SignaturePainterCP extends CustomPainter {
 
   SignaturePainterCP({
     @required this.control,
+    this.cp: false,
     this.cpStart: true,
     this.cpEnd: true,
     this.dot: true,
@@ -220,6 +186,8 @@ class SignaturePainterCP extends CustomPainter {
           canvas.drawCircle(line.cpStart, 1.0, paint);
           canvas.drawCircle(line.start, 1.0, paint);
         }
+      } else if (cp) {
+        canvas.drawCircle(line.cpStart, 1.0, paint);
       }
 
       if (cpEnd) {

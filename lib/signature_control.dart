@@ -97,15 +97,22 @@ class CubicLine extends Offset {
   final Offset cpEnd;
   final OffsetPoint end;
 
-  CubicLine({
-    this.start,
-    this.cpStart,
-    this.cpEnd,
-    this.end,
-  }) : super(start.dx, start.dy);
+  double _velocity;
+  double _distance;
 
-  //TODO: smoothing based on distance with smoothRatio multiplier
+  CubicLine({
+    @required this.start,
+    @required this.cpStart,
+    @required this.cpEnd,
+    @required this.end,
+  }) : super(start.dx, start.dy) {
+    _velocity = end.velocityFrom(start);
+    _distance = start.distanceTo(end);
+  }
+
   static Offset softCP(OffsetPoint current, {OffsetPoint previous, OffsetPoint next, bool reverse: false, double smoothing: 0.65}) {
+    assert(smoothing >= 0.0 && smoothing <= 1.0);
+
     previous ??= current;
     next ??= current;
 
@@ -122,8 +129,8 @@ class CubicLine extends Offset {
     final ratio = (dist * velocity * smoothing).clamp(0.0, (reverse ? dist2 : dist1) * 0.5);
 
     final dir = ((reverse ? dir2 : dir1) * sharpness) + (dir3 * smoothing) * ratio;
-    final x = current.dx + dir.dx; //math.cos(angle) * ratio;
-    final y = current.dy + dir.dy; //math.sin(angle) * ratio;
+    final x = current.dx + dir.dx;
+    final y = current.dy + dir.dy;
 
     return Offset(x, y);
   }
@@ -150,7 +157,7 @@ class CubicLine extends Offset {
     final steps = (accuracy * 100).toInt();
 
     if (steps <= 1) {
-      return start.distanceTo(end);
+      return _distance;
     }
 
     double length = 0.0;
@@ -175,61 +182,150 @@ class CubicLine extends Offset {
 
   double velocity({double accuracy: 0.0}) => start.timestamp != end.timestamp ? length(accuracy: accuracy) / (end.timestamp - start.timestamp) : 0.0;
 
-  double combineVelocity(double inVelocity, {double velocityRatio: 0.65, double maxFallOf: double.infinity}) {
-    final value = velocity() * velocityRatio + (inVelocity * (1.0 - velocityRatio));
+  double combineVelocity(double inVelocity, {double velocityRatio: 0.65, double maxFallOff: 1.0}) {
+    final value = (_velocity * velocityRatio) + (inVelocity * (1.0 - velocityRatio));
 
-    final dist = (inVelocity - value).abs();
-    if (dist > maxFallOf) {
-      if (value > inVelocity) {
-        return inVelocity + maxFallOf;
+    maxFallOff *= _distance / 10.0;
+
+    final dif = value - inVelocity;
+    if (dif.abs() > maxFallOff) {
+      if (dif > 0.0) {
+        return inVelocity + maxFallOff;
+      } else {
+        return inVelocity - maxFallOff;
       }
-
-      return inVelocity - maxFallOf;
     }
 
     return value;
   }
+
+  List<CubicArc> arcPath(double size, double deltaSize, {double precision: 2.0}) {
+    final list = List<CubicArc>();
+
+    final steps = (_distance * precision).floor();
+
+    Offset start = this.start;
+    for (int i = 0; i < steps; i++) {
+      final t = i / steps;
+      final loc = point(t);
+      final width = size + deltaSize * t;
+
+      list.add(CubicArc(
+        start: start,
+        location: loc,
+        size: width,
+      ));
+
+      start = loc;
+    }
+
+    return list;
+  }
+}
+
+class CubicArc extends Offset {
+  final Offset location;
+  final double size;
+
+  Path get path => Path()
+    ..moveTo(dx, dy)
+    ..arcToPoint(location, rotation: math.pi * 2.0);
+
+  CubicArc({
+    @required Offset start,
+    @required this.location,
+    this.size: 1.0,
+  }) : super(start.dx, start.dy);
+
+  @override
+  Offset translate(double translateX, double translateY) => CubicArc(
+        start: Offset(dx + translateX, dy + translateY),
+        location: location.translate(translateX, translateY),
+        size: size,
+      );
+
+  @override
+  Offset scale(double scaleX, double scaleY) => CubicArc(
+        start: Offset(dx * scaleX, dy * scaleY),
+        location: location.scale(scaleX, scaleY),
+        size: size,
+      );
 }
 
 class CubicPath {
-  final threshold;
-  final smoothRatio;
+  final _points = List<OffsetPoint>();
+  final _lines = List<CubicLine>();
+  final _arcs = List<CubicArc>();
 
-  final _raw = List<OffsetPoint>();
-  final _rawLine = List<CubicLine>();
+  List<OffsetPoint> get points => _points;
 
-  List<OffsetPoint> get points => _raw;
+  List<CubicLine> get lines => _lines;
 
-  List<CubicLine> get lines => _rawLine;
+  List<CubicArc> get arcs => _arcs;
 
-  Offset get _origin => _raw.isNotEmpty ? _raw[0] : null;
+  Offset get _origin => _points.isNotEmpty ? _points[0] : null;
 
-  OffsetPoint get _lastPoint => _raw.isNotEmpty ? _raw[_raw.length - 1] : null;
+  OffsetPoint get _lastPoint => _points.isNotEmpty ? _points[_points.length - 1] : null;
 
-  bool get isFilled => _raw.isNotEmpty;
+  bool get isFilled => _points.isNotEmpty;
 
-  Path _path;
   Path _temp;
 
-  Path get path => _path;
+  Path get path => Path();
 
   Path get tempPath => _temp;
+
+  double maxVelocity = 1.0;
+
+  double _currentVelocity = 0.0;
+  double _currentSize = 0.0;
+
+  final threshold;
+  final smoothRatio;
 
   CubicPath({
     this.threshold: 3.0,
     this.smoothRatio: 0.65,
   });
 
-  Path begin(Offset point) {
-    assert(_path == null);
+  void _addLine(CubicLine line) {
+    if (_lines.length == 0) {
+      print(_currentVelocity);
+      if (_currentVelocity == 0.0) {
+        _currentVelocity = line._velocity;
+      }
 
-    _path = Path();
-    _raw.add(OffsetPoint.from(point));
-    _path.moveTo(point.dx, point.dy);
+      if (_currentSize == 0.0) {
+        _currentSize = _lineSize(_currentVelocity, maxVelocity);
+      }
+    }
+
+    _lines.add(line);
+
+    final combinedVelocity = line.combineVelocity(_currentVelocity, maxFallOff: 0.125);
+    final double endSize = _lineSize(combinedVelocity, maxVelocity);
+
+    if (combinedVelocity > maxVelocity) {
+      maxVelocity = combinedVelocity;
+    }
+
+    _arcs.addAll(line.arcPath(_currentSize, endSize - _currentSize));
+
+    _currentSize = endSize;
+    _currentVelocity = combinedVelocity;
+  }
+
+  double _lineSize(double velocity, double max) {
+    velocity /= max;
+
+    return 1.0 - velocity.clamp(0.0, 1.0);
+  }
+
+  void begin(Offset point, {double velocity: 0.0}) {
+    _points.add(OffsetPoint.from(point));
+    _currentVelocity = velocity;
 
     _temp = _dot(point);
-
-    return _path;
   }
 
   void add(Offset point) {
@@ -238,36 +334,17 @@ class CubicPath {
     final nextPoint = point is OffsetPoint ? point : OffsetPoint.from(point);
 
     if (_lastPoint.distanceTo(nextPoint) < threshold) {
-      if (_raw.length > 1) {
-        _temp = _line(
-          _raw[_raw.length - 2],
-          nextPoint,
-          CubicLine.softCP(
-            _raw[_raw.length - 1],
-            previous: _raw[_raw.length - 2],
-            next: nextPoint,
-            smoothing: smoothRatio,
-          ),
-          CubicLine.softCP(
-            nextPoint,
-            previous: _raw[_raw.length - 1],
-            smoothing: smoothRatio,
-            reverse: true,
-          ),
-        );
-      } else {
-        _temp = _line(_raw[0], nextPoint);
-      }
+      _temp = _line(_points.last, nextPoint);
 
       return;
     }
 
-    _raw.add(nextPoint);
-    int count = _raw.length;
+    _points.add(nextPoint);
+    int count = _points.length;
 
     if (count < 3) {
       if (count > 1) {
-        _temp = _line(_raw[0], _raw[1]);
+        _temp = _line(_points[0], _points[1]);
       }
 
       return;
@@ -275,10 +352,10 @@ class CubicPath {
 
     int i = count - 3;
 
-    final prev = i > 0 ? _raw[i - 1] : _raw[i];
-    final start = _raw[i];
-    final end = _raw[i + 1];
-    final next = _raw[i + 2];
+    final prev = i > 0 ? _points[i - 1] : _points[i];
+    final start = _points[i];
+    final end = _points[i + 1];
+    final next = _points[i + 2];
 
     final cpStart = CubicLine.softCP(
       start,
@@ -295,21 +372,14 @@ class CubicPath {
       reverse: true,
     );
 
-    _rawLine.add(CubicLine(
+    final line = CubicLine(
       start: start,
       cpStart: cpStart,
       cpEnd: cpEnd,
       end: end,
-    ));
-
-    _path.cubicTo(
-      cpStart.dx,
-      cpStart.dy,
-      cpEnd.dx,
-      cpEnd.dy,
-      end.dx,
-      end.dy,
     );
+
+    _addLine(line);
 
     _temp = _line(end, next);
   }
@@ -321,91 +391,37 @@ class CubicPath {
 
     _temp = null;
 
-    if (_raw.isEmpty) {
+    if (_points.isEmpty) {
       return false;
     }
 
-    if (_raw.length < 3) {
-      if (_raw.length == 1) {
-        _path.cubicTo(
-          _raw[0].dx,
-          _raw[0].dy,
-          _raw[0].dx,
-          _raw[0].dy,
-          _raw[0].dx,
-          _raw[0].dy,
-        );
-
-        _rawLine.add(CubicLine(
-          start: _raw[0],
-          cpStart: _raw[0],
-          cpEnd: _raw[0],
-          end: _raw[0],
+    if (_points.length < 3) {
+      if (_points.length == 1) {
+        _addLine(CubicLine(
+          start: _points[0],
+          cpStart: _points[0],
+          cpEnd: _points[0],
+          end: _points[0],
         ));
       } else {
-        _path.cubicTo(
-          _raw[0].dx,
-          _raw[0].dy,
-          _raw[1].dx,
-          _raw[1].dy,
-          _raw[1].dx,
-          _raw[1].dy,
-        );
-
-        _rawLine.add(CubicLine(
-          start: _raw[0],
-          cpStart: _raw[0],
-          cpEnd: _raw[1],
-          end: _raw[1],
+        _addLine(CubicLine(
+          start: _points[0],
+          cpStart: _points[0],
+          cpEnd: _points[1],
+          end: _points[1],
         ));
       }
     } else {
-      final i = _raw.length - 3;
-
-      final last = CubicLine(
-        start: _raw[i],
-        cpStart: CubicLine.softCP(
-          _raw[i + 1],
-          previous: _raw[i],
-          next: _raw[i + 2],
-          smoothing: smoothRatio,
-        ),
-        cpEnd: CubicLine.softCP(
-          _raw[i + 2],
-          previous: _raw[i + 1],
-          smoothing: smoothRatio,
-          reverse: true,
-        ),
-        end: _raw[i + 1],
-      );
+      final i = _points.length - 3;
 
       final end = CubicLine(
-        start: _raw[i + 1],
-        cpStart: _raw[i + 1],
-        cpEnd: _raw[i + 2],
-        end: _raw[i + 2],
+        start: _points[i + 1],
+        cpStart: _points[i + 1],
+        cpEnd: _points[i + 2],
+        end: _points[i + 2],
       );
 
-      _path.cubicTo(
-        last.cpStart.dx,
-        last.cpStart.dy,
-        last.cpEnd.dx,
-        last.cpEnd.dy,
-        last.end.dx,
-        last.end.dy,
-      );
-
-      _path.cubicTo(
-        end.cpStart.dx,
-        end.cpStart.dy,
-        end.cpEnd.dx,
-        end.cpEnd.dy,
-        end.end.dx,
-        end.end.dy,
-      );
-
-      //_rawLine.add(last);
-      _rawLine.add(end);
+      _addLine(end);
     }
 
     return true;
@@ -433,51 +449,41 @@ class CubicPath {
       end.dy,
     );
 
-  Path setScale(double ratio) {
+  void setScale(double ratio) {
     if (!isFilled) {
-      return null;
+      return;
     }
 
-    final data = OffsetMath.scale(_raw, ratio);
+    final data = OffsetMath.scale(_arcs, ratio);
 
-    _raw.clear();
-    _rawLine.clear();
-    _path = null;
+    _arcs.clear();
+    _arcs.addAll(data.cast<CubicArc>());
+  }
 
-    begin(data[0]);
-    data.forEach((point) => add(point));
-    end();
-
-    return _path;
+  void clear() {
+    _points.clear();
+    _lines.clear();
+    _arcs.clear();
   }
 }
 
 class HandSignatureControl extends ChangeNotifier {
-  final _pathData = List<Path>();
-  final _rawData = List<CubicPath>();
+  final _paths = List<CubicPath>();
 
-  List<Path> get paths {
-    final paths = List.of(_pathData);
+  List<CubicPath> get paths => _paths;
 
-    if (_activePath?._temp != null) {
-      paths.add(_activePath._temp);
-    }
-
-    return paths;
-  }
-
-  List<List<Offset>> get _rawList {
+  List<List<Offset>> get _offsets {
     final list = List<List<Offset>>();
 
-    _rawData.forEach((data) => list.add(data._raw));
+    _paths.forEach((data) => list.add(data._points));
 
     return list;
   }
 
-  List<List<CubicLine>> get _rawLine {
+  List<List<CubicLine>> get _cubicLines {
     final list = List<List<CubicLine>>();
 
-    _rawData.forEach((data) => list.add(data._rawLine));
+    _paths.forEach((data) => list.add(data._lines));
 
     return list;
   }
@@ -485,7 +491,7 @@ class HandSignatureControl extends ChangeNotifier {
   List<CubicLine> get lines {
     final list = List<CubicLine>();
 
-    _rawData.forEach((data) => list.addAll(data.lines));
+    _paths.forEach((data) => list.addAll(data.lines));
 
     return list;
   }
@@ -494,7 +500,7 @@ class HandSignatureControl extends ChangeNotifier {
 
   bool get hasActivePath => _activePath != null;
 
-  bool get isFilled => _rawData.isNotEmpty;
+  bool get isFilled => _paths.isNotEmpty;
 
   SignaturePaintParams params;
 
@@ -502,10 +508,12 @@ class HandSignatureControl extends ChangeNotifier {
 
   final double threshold;
   final double smoothRatio;
+  final double velocityRange;
 
   HandSignatureControl({
     this.threshold: 3.0,
     this.smoothRatio: 0.65,
+    this.velocityRange: 2.0,
   });
 
   void startPath(Offset point) {
@@ -514,11 +522,11 @@ class HandSignatureControl extends ChangeNotifier {
     _activePath = CubicPath(
       threshold: threshold,
       smoothRatio: smoothRatio,
-    );
-    _activePath.begin(point);
+    )..maxVelocity = velocityRange;
 
-    _rawData.add(_activePath);
-    _pathData.add(_activePath._path);
+    _activePath.begin(point, velocity: _paths.isNotEmpty ? _paths[0]._currentVelocity : 0.0);
+
+    _paths.add(_activePath);
   }
 
   void alterPath(Offset point) {
@@ -533,8 +541,7 @@ class HandSignatureControl extends ChangeNotifier {
     assert(hasActivePath);
 
     if (!_activePath.end(point: point)) {
-      _rawData.removeLast();
-      _pathData.removeLast();
+      _paths.removeLast();
     }
 
     _activePath = null;
@@ -543,8 +550,7 @@ class HandSignatureControl extends ChangeNotifier {
   }
 
   void clear() {
-    _rawData.clear();
-    _pathData.clear();
+    _paths.clear();
 
     notifyListeners();
   }
@@ -575,12 +581,8 @@ class HandSignatureControl extends ChangeNotifier {
 
     _areaSize = size;
 
-    _pathData.clear();
-    _rawData.forEach((path) {
-      final data = path.setScale(scale);
-      if (data != null) {
-        _pathData.add(data);
-      }
+    _paths.forEach((path) {
+      path.setScale(scale);
     });
 
     Future.delayed(Duration(), () => notifyListeners());
@@ -588,7 +590,7 @@ class HandSignatureControl extends ChangeNotifier {
     return true;
   }
 
-  String asSvg({double width: 256.0, double height: 256.0, double border: 0.0}) {
+  String asCubicPathSvg({double width: 256.0, double height: 256.0, double border: 0.0}) {
     if (!isFilled) {
       return null;
     }
@@ -599,8 +601,8 @@ class HandSignatureControl extends ChangeNotifier {
     );
 
     final rect = Rect.fromLTRB(0.0, 0.0, width, height);
-    final bounds = OffsetMath.boundsOf(_rawList);
-    final data = OffsetMath.fillOf(_rawLine, rect, bound: bounds, border: params.width + border);
+    final bounds = OffsetMath.boundsOf(_offsets);
+    final data = OffsetMath.fillOf(_cubicLines, rect, bound: bounds, border: params.width + border);
 
     final buffer = StringBuffer();
     buffer.writeln('<?xml version="1.0" encoding="UTF-8" standalone="no"?>');
@@ -619,8 +621,10 @@ class HandSignatureControl extends ChangeNotifier {
     return buffer.toString();
   }
 
+  String asCubicArcSvg({double width: 256.0, double height: 256.0, double border: 0.0}) {}
+
   Picture asPicture({double width: 256.0, double height: 256.0}) {
-    final data = OffsetMath.fillOf(_rawList, Rect.fromLTRB(0.0, 0.0, width, height));
+    final data = OffsetMath.fillOf(_offsets, Rect.fromLTRB(0.0, 0.0, width, height));
 
     final recorder = PictureRecorder();
     final painter = HandSignaturePainter(
