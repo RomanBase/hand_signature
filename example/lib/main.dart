@@ -57,7 +57,7 @@ class MyApp extends StatelessWidget {
                       ),
                       RaisedButton(
                         onPressed: () {
-                          final data = control.asCubicPathSvg();
+                          final data = control.asSvg();
                           svg.value = data;
                         },
                         child: Text('svg'),

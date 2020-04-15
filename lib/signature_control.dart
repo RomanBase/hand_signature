@@ -224,12 +224,14 @@ class CubicLine extends Offset {
 }
 
 class CubicArc extends Offset {
+  static const rotation = math.pi * 2.0;
+
   final Offset location;
   final double size;
 
   Path get path => Path()
     ..moveTo(dx, dy)
-    ..arcToPoint(location, rotation: math.pi * 2.0);
+    ..arcToPoint(location, rotation: rotation);
 
   CubicArc({
     @required Offset start,
@@ -488,6 +490,14 @@ class HandSignatureControl extends ChangeNotifier {
     return list;
   }
 
+  List<CubicArc> get _arcs {
+    final list = List<CubicArc>();
+
+    _paths.forEach((data) => list.addAll(data.arcs));
+
+    return list;
+  }
+
   List<CubicLine> get lines {
     final list = List<CubicLine>();
 
@@ -590,7 +600,7 @@ class HandSignatureControl extends ChangeNotifier {
     return true;
   }
 
-  String asCubicPathSvg({double width: 256.0, double height: 256.0, double border: 0.0}) {
+  String asSimplePathSvg({double width: 256.0, double height: 256.0, double border: 0.0}) {
     if (!isFilled) {
       return null;
     }
@@ -607,21 +617,53 @@ class HandSignatureControl extends ChangeNotifier {
     final buffer = StringBuffer();
     buffer.writeln('<?xml version="1.0" encoding="UTF-8" standalone="no"?>');
     buffer.writeln('<svg width="$width" height="$height" xmlns="http://www.w3.org/2000/svg">');
-
     buffer.writeln('<g stroke="${params.hexColor}" fill="none" stroke-width="${params.width}" stroke-linecap="round" stroke-linejoin="round" >');
+
     data.forEach((line) {
       buffer.write('<path d="M ${line[0].dx} ${line[0].dy}');
       line.cast<CubicLine>().forEach((path) => buffer.write(' C ${path.cpStart.dx} ${path.cpStart.dy}, ${path.cpEnd.dx} ${path.cpEnd.dy}, ${path.end.dx} ${path.end.dy}'));
       buffer.writeln('" />');
     });
-    buffer.writeln('<\/g>');
 
+    buffer.writeln('<\/g>');
     buffer.writeln('<\/svg>');
 
     return buffer.toString();
   }
 
-  String asCubicArcSvg({double width: 256.0, double height: 256.0, double border: 0.0}) {}
+  String asSvg({double width: 256.0, double height: 256.0, double border: 0.0, double size: 1.0, double maxSize: 10.0}) {
+    if (!isFilled) {
+      return null;
+    }
+
+    params ??= SignaturePaintParams(
+      color: Colors.black,
+      width: maxSize,
+    );
+
+    final rect = Rect.fromLTRB(0.0, 0.0, width, height);
+    final bounds = OffsetMath.boundsOf(_offsets);
+    final data = OffsetMath.fill(_arcs, rect, bound: bounds, border: params.width + border).cast<CubicArc>();
+
+    if (data == null) {
+      return null;
+    }
+
+    final buffer = StringBuffer();
+    buffer.writeln('<?xml version="1.0" encoding="UTF-8" standalone="no"?>');
+    buffer.writeln('<svg width="$width" height="$height" xmlns="http://www.w3.org/2000/svg">');
+    buffer.writeln('<g stroke="${params.hexColor}" fill="none" stroke-width="${params.width}" stroke-linecap="round" stroke-linejoin="round" >');
+
+    data.forEach((arc) {
+      final strokeSize = size + (maxSize - size) * arc.size;
+      buffer.writeln('<path d="M ${arc.dx} ${arc.dy} A 0 0, ${CubicArc.rotation}, 0, 0, ${arc.location.dx} ${arc.location.dy}" stroke-width="$strokeSize" \/>');
+    });
+
+    buffer.writeln('<\/g>');
+    buffer.writeln('<\/svg>');
+
+    return buffer.toString();
+  }
 
   Picture asPicture({double width: 256.0, double height: 256.0}) {
     final data = OffsetMath.fillOf(_offsets, Rect.fromLTRB(0.0, 0.0, width, height));
