@@ -3,7 +3,11 @@ import 'package:hand_signature/signature.dart';
 
 void main() => runApp(MyApp());
 
-HandSignatureControl control = new HandSignatureControl();
+HandSignatureControl control = new HandSignatureControl(
+  threshold: 3.0,
+  smoothRatio: 0.65,
+  velocityRange: 2.0,
+);
 
 ValueNotifier<String> svg = ValueNotifier<String>(null);
 
@@ -57,7 +61,11 @@ class MyApp extends StatelessWidget {
                       ),
                       RaisedButton(
                         onPressed: () {
-                          final data = control.toSvg(size: 0.1, maxSize: 5.0);
+                          final data = control.toSvg(
+                            color: Colors.blueGrey,
+                            size: 2.0,
+                            maxSize: 15.0,
+                          );
                           svg.value = data;
                         },
                         child: Text('svg'),
@@ -77,7 +85,10 @@ class MyApp extends StatelessWidget {
                   child: ValueListenableBuilder<String>(
                     valueListenable: svg,
                     builder: (context, data, child) {
-                      return HandSignatureView.svg(data: data);
+                      return HandSignatureView.svg(
+                        data: data,
+                        strokeWidth: (width) => width * 0.5,
+                      );
                     },
                   ),
                 ),

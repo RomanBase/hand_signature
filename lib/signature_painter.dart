@@ -53,30 +53,22 @@ class PathSignaturePainter extends CustomPainter {
 class DrawableSignaturePainter extends CustomPainter {
   final DrawableParent drawable;
   final Color color;
-  final double width;
-  final bool Function(Size size) onSize;
+  final double Function(double width) strokeWidth;
 
   DrawableSignaturePainter({
     @required this.drawable,
     this.color,
-    this.width,
-    this.onSize,
+    this.strokeWidth,
   }) : assert(drawable != null);
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (onSize != null) {
-      if (onSize(size)) {
-        return;
-      }
-    }
-
     final paint = Paint()
       ..color = color ?? drawable.style?.stroke?.color ?? Colors.black
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = width ?? drawable.style?.stroke?.strokeWidth ?? 1.0;
+      ..strokeWidth = drawable.style?.stroke?.strokeWidth ?? 1.0;
 
     _draw(drawable, canvas, paint);
   }
@@ -92,7 +84,11 @@ class DrawableSignaturePainter extends CustomPainter {
               paint.color = style.color;
             }
             if (style.strokeWidth != null) {
-              paint.strokeWidth = style.strokeWidth;
+              if (strokeWidth != null) {
+                paint.strokeWidth = strokeWidth(style.strokeWidth);
+              } else {
+                paint.strokeWidth = style.strokeWidth;
+              }
             }
           }
 

@@ -12,7 +12,6 @@ class HandSignaturePainterView extends StatelessWidget {
   final Color color;
   final double width;
   final double maxWidth;
-  final Widget placeholder;
   final HandSignatureControl control;
 
   HandSignaturePainterView({
@@ -21,7 +20,6 @@ class HandSignaturePainterView extends StatelessWidget {
     this.color: Colors.black,
     this.width: 1.0,
     this.maxWidth: 10.0,
-    this.placeholder,
   }) : super(key: key);
 
   @override
@@ -52,7 +50,7 @@ class HandSignaturePainterView extends StatelessWidget {
 class HandSignatureView extends StatelessWidget {
   final Drawable data;
   final Color color;
-  final double width;
+  final double Function(double width) strokeWidth;
   final EdgeInsets padding;
   final Widget placeholder;
 
@@ -60,7 +58,7 @@ class HandSignatureView extends StatelessWidget {
     Key key,
     @required this.data,
     this.color,
-    this.width,
+    this.strokeWidth,
     this.padding,
     this.placeholder,
   }) : super(key: key);
@@ -69,7 +67,7 @@ class HandSignatureView extends StatelessWidget {
     Key key,
     @required String data,
     Color color,
-    double width,
+    double Function(double width) strokeWidth,
     EdgeInsets padding,
     Widget placeholder,
   }) =>
@@ -77,7 +75,7 @@ class HandSignatureView extends StatelessWidget {
         key: key,
         data: data,
         color: color,
-        width: width,
+        strokeWidth: strokeWidth,
         padding: padding,
         placeholder: placeholder,
       );
@@ -102,7 +100,7 @@ class HandSignatureView extends StatelessWidget {
             painter: DrawableSignaturePainter(
               drawable: data,
               color: color,
-              width: width,
+              strokeWidth: strokeWidth,
             ),
           ),
         ),
@@ -114,7 +112,7 @@ class HandSignatureView extends StatelessWidget {
 class _HandSignatureViewSvg extends StatefulWidget {
   final String data;
   final Color color;
-  final double width;
+  final double Function(double width) strokeWidth;
   final EdgeInsets padding;
   final Widget placeholder;
 
@@ -122,7 +120,7 @@ class _HandSignatureViewSvg extends StatefulWidget {
     Key key,
     @required this.data,
     this.color,
-    this.width,
+    this.strokeWidth,
     this.padding,
     this.placeholder,
   }) : super(key: key);
@@ -171,7 +169,7 @@ class _HandSignatureViewSvgState extends State<_HandSignatureViewSvg> {
   Widget build(BuildContext context) => HandSignatureView(
         data: drawable,
         color: widget.color,
-        width: widget.width,
+        strokeWidth: widget.strokeWidth,
         padding: widget.padding,
         placeholder: widget.placeholder,
       );
