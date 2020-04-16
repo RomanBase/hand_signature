@@ -54,4 +54,5 @@ Or use build in **HandSignatureView** for greater control.
 Any contribution is highly welcomed.\
 Library is in good condition, but still in early development.\
 Mainly to improve smoothing and line weight to better match real signature.\
+And there are some performance problems with high amount of drawing lines.\
 Also currently there are no tests or documentation.
