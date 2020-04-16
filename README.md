@@ -28,8 +28,8 @@ With **HandSignatureControl** and **HandSignaturePainterView** is possible to tw
     );
 ```
 
-**Export**
-It's possible to modify some properties during export, like canvas size, stroke min/max width and color.
+**Export**\
+Some properties can be modified during export, like canvas size, stroke min/max width and color.
 There are more ways and more formats how to export signature. Most used are **svg** and **png** formats.
 ```dart
     final control = HandSignatureControl();
@@ -38,8 +38,8 @@ There are more ways and more formats how to export signature. Most used are **sv
     final png = control.toImage();
 ```
 
-**Parsing**
-Resulting **svg** is possible to display in classic ![link](https://pub.dev/packages/flutter_svg "flutter_svg").\
+**Parsing**\
+Resulting **svg** is possible to display in classic ![flutter_svg](https://pub.dev/packages/flutter_svg) widget.\
 Or use build in **HandSignatureView** for greater control.
 ```dart
     final widget = HandSignatureView.svg(
@@ -50,7 +50,7 @@ Or use build in **HandSignatureView** for greater control.
 
 ---
 
-**Contribution**
+**Contribution**\
 Any contribution is highly welcomed.\
 Library is in good condition, but still in early development.\
 Mainly more improve smoothing and line size to better match real signature.\
