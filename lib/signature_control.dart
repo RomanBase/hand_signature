@@ -13,7 +13,7 @@ class SignaturePaintParams {
   final double width;
   final double maxWidth;
 
-  String get hexColor => '#${color.value.toRadixString(16)}'.replaceRange(1, 3, '');
+  String get hexColor => color.hexValue;
 
   String get opacity => '${color.opacity}}';
 
@@ -22,29 +22,6 @@ class SignaturePaintParams {
     this.width: 1.0,
     this.maxWidth: 10.0,
   });
-}
-
-extension OffsetEx on Offset {
-  Offset axisDistanceTo(Offset other) => other - this;
-
-  double distanceTo(Offset other) {
-    final len = axisDistanceTo(other);
-
-    return math.sqrt(len.dx * len.dx + len.dy * len.dy);
-  }
-
-  double angleTo(Offset other) {
-    final len = axisDistanceTo(other);
-
-    return math.atan2(len.dy, len.dx);
-  }
-
-  Offset directionTo(Offset other) {
-    final len = axisDistanceTo(other);
-    final m = math.sqrt(len.dx * len.dx + len.dy * len.dy);
-
-    return Offset(len.dx / m, len.dy / m);
-  }
 }
 
 class OffsetPoint extends Offset {
@@ -599,24 +576,28 @@ class HandSignatureControl extends ChangeNotifier {
     return true;
   }
 
-  String asSimplePathSvg({double width: 256.0, double height: 256.0, double border: 0.0}) {
+  String toSimplePathSvg({int width: 512, int height: 256, double border: 0.0, Color color, double size}) {
     if (!isFilled) {
       return null;
     }
 
     params ??= SignaturePaintParams(
       color: Colors.black,
-      width: 6.0,
+      width: 1.0,
+      maxWidth: 10.0,
     );
 
-    final rect = Rect.fromLTRB(0.0, 0.0, width, height);
+    size ??= params.width;
+    color ??= params.color;
+
+    final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
     final bounds = PathUtil.boundsOf(_offsets);
-    final data = PathUtil.fillOf(_cubicLines, rect, bound: bounds, border: params.width + border);
+    final data = PathUtil.fillOf(_cubicLines, rect, bound: bounds, border: size + border);
 
     final buffer = StringBuffer();
     buffer.writeln('<?xml version="1.0" encoding="UTF-8" standalone="no"?>');
     buffer.writeln('<svg width="$width" height="$height" xmlns="http://www.w3.org/2000/svg">');
-    buffer.writeln('<g stroke="${params.hexColor}" fill="none" stroke-width="${params.width}" stroke-linecap="round" stroke-linejoin="round" >');
+    buffer.writeln('<g stroke="${color.hexValue}" fill="none" stroke-width="$size" stroke-linecap="round" stroke-linejoin="round" >');
 
     data.forEach((line) {
       buffer.write('<path d="M ${line[0].dx} ${line[0].dy}');
@@ -630,7 +611,7 @@ class HandSignatureControl extends ChangeNotifier {
     return buffer.toString();
   }
 
-  String asSvg({double width: 256.0, double height: 256.0, double border: 0.0}) {
+  String toSvg({int width: 512, int height: 256, double border: 0.0, Color color, double size, double maxSize}) {
     if (!isFilled) {
       return null;
     }
@@ -641,9 +622,13 @@ class HandSignatureControl extends ChangeNotifier {
       maxWidth: 10.0,
     );
 
-    final rect = Rect.fromLTRB(0.0, 0.0, width, height);
+    color ??= params.color;
+    size ??= params.width;
+    maxSize ??= params.maxWidth;
+
+    final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
     final bounds = PathUtil.boundsOf(_offsets);
-    final data = PathUtil.fill(_arcs, rect, bound: bounds, border: params.width + border).cast<CubicArc>();
+    final data = PathUtil.fill(_arcs, rect, bound: bounds, border: maxSize + border).cast<CubicArc>();
 
     if (data == null) {
       return null;
@@ -652,10 +637,10 @@ class HandSignatureControl extends ChangeNotifier {
     final buffer = StringBuffer();
     buffer.writeln('<?xml version="1.0" encoding="UTF-8" standalone="no"?>');
     buffer.writeln('<svg width="$width" height="$height" xmlns="http://www.w3.org/2000/svg">');
-    buffer.writeln('<g stroke="${params.hexColor}" fill="none" stroke-width="${params.width}" stroke-linecap="round" stroke-linejoin="round" >');
+    buffer.writeln('<g stroke="${color.hexValue}" fill="none" stroke-linecap="round" stroke-linejoin="round" >');
 
     data.forEach((arc) {
-      final strokeSize = params.width + (params.maxWidth - params.width) * arc.size;
+      final strokeSize = size + (maxSize - size) * arc.size;
       buffer.writeln('<path d="M ${arc.dx} ${arc.dy} A 0 0, ${CubicArc.rotation}, 0, 0, ${arc.location.dx} ${arc.location.dy}" stroke-width="$strokeSize" \/>');
     });
 
@@ -665,35 +650,51 @@ class HandSignatureControl extends ChangeNotifier {
     return buffer.toString();
   }
 
-  Picture asPicture({double width: 256.0, double height: 256.0}) {
-    final data = PathUtil.fill(_arcs, Rect.fromLTRB(0.0, 0.0, width, height)).cast<CubicArc>();
+  Picture toPicture({int width: 512, int height: 256, Color color, double size, double maxSize}) {
+    final data = PathUtil.fill(_arcs, Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble())).cast<CubicArc>();
     final path = CubicPath().._arcs.addAll(data);
+
+    params ??= SignaturePaintParams(
+      color: Colors.black,
+      width: 1.0,
+      maxWidth: 10.0,
+    );
+
+    color ??= params.color;
+    size ??= params.width;
+    maxSize ??= params.maxWidth;
 
     final recorder = PictureRecorder();
     final painter = PathSignaturePainter(
       paths: [path],
-      color: params?.color,
-      width: params?.width,
-      maxWidth: params?.maxWidth,
+      color: color,
+      width: size,
+      maxWidth: maxSize,
     );
 
     final canvas = Canvas(
       recorder,
       Rect.fromPoints(
         Offset(0.0, 0.0),
-        Offset(width, height),
+        Offset(width.toDouble(), height.toDouble()),
       ),
     );
 
-    painter.paint(canvas, Size(width, height));
+    painter.paint(canvas, Size(width.toDouble(), height.toDouble()));
 
     return recorder.endRecording();
   }
 
-  Future<ByteData> asPng({int width: 256, int height: 256}) async {
-    final image = await asPicture(width: width.toDouble(), height: height.toDouble()).toImage(width, height);
+  Future<ByteData> toImage({int width: 512, int height: 256, Color color, double size, double maxSize, ImageByteFormat format: ImageByteFormat.png}) async {
+    final image = await toPicture(
+      width: width,
+      height: height,
+      color: color,
+      size: size,
+      maxSize: maxSize,
+    ).toImage(width, height);
 
-    return image.toByteData();
+    return image.toByteData(format: format);
   }
 
   @override

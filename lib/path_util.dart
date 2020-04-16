@@ -4,6 +4,33 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+extension ColorEx on Color {
+  String get hexValue => '#${value.toRadixString(16)}'.replaceRange(1, 3, '');
+}
+
+extension OffsetEx on Offset {
+  Offset axisDistanceTo(Offset other) => other - this;
+
+  double distanceTo(Offset other) {
+    final len = axisDistanceTo(other);
+
+    return sqrt(len.dx * len.dx + len.dy * len.dy);
+  }
+
+  double angleTo(Offset other) {
+    final len = axisDistanceTo(other);
+
+    return atan2(len.dy, len.dx);
+  }
+
+  Offset directionTo(Offset other) {
+    final len = axisDistanceTo(other);
+    final m = sqrt(len.dx * len.dx + len.dy * len.dy);
+
+    return Offset(len.dx / m, len.dy / m);
+  }
+}
+
 class PathUtil {
   static Rect bounds(List<Offset> data) {
     double left = data[0].dx;

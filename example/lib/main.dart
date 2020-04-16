@@ -57,7 +57,7 @@ class MyApp extends StatelessWidget {
                       ),
                       RaisedButton(
                         onPressed: () {
-                          final data = control.asSvg();
+                          final data = control.toSvg(size: 0.1, maxSize: 5.0);
                           svg.value = data;
                         },
                         child: Text('svg'),
