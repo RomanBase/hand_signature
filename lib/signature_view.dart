@@ -1,14 +1,17 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_svg/parser.dart';
 import 'package:hand_signature/signature_control.dart';
 import 'package:hand_signature/signature_painter.dart';
 
-import 'path_math.dart';
+import 'path_util.dart';
+import 'signature_paint.dart';
 
 class HandSignaturePainterView extends StatelessWidget {
   final Color color;
   final double width;
+  final double maxWidth;
   final Widget placeholder;
   final HandSignatureControl control;
 
@@ -17,6 +20,7 @@ class HandSignaturePainterView extends StatelessWidget {
     @required this.control,
     this.color: Colors.black,
     this.width: 1.0,
+    this.maxWidth: 10.0,
     this.placeholder,
   }) : super(key: key);
 
@@ -46,7 +50,7 @@ class HandSignaturePainterView extends StatelessWidget {
 }
 
 class HandSignatureView extends StatelessWidget {
-  final List<Path> data;
+  final Drawable data;
   final Color color;
   final double width;
   final EdgeInsets padding;
@@ -80,7 +84,7 @@ class HandSignatureView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (data == null || data.isEmpty) {
+    if (data == null) {
       return placeholder ??
           Container(
             color: Theme.of(context).backgroundColor,
@@ -93,12 +97,12 @@ class HandSignatureView extends StatelessWidget {
         fit: BoxFit.contain,
         alignment: Alignment.center,
         child: SizedBox.fromSize(
-          size: OffsetMath.pathBoundsOf(data).size,
+          size: PathUtil.pathBoundsOf(PathUtil.parseDrawable(data)).size,
           child: CustomPaint(
-            painter: HandSignaturePainter(
-              paths: data,
-              color: color ?? Colors.black,
-              width: width ?? 2.0,
+            painter: DrawableSignaturePainter(
+              drawable: data,
+              color: color,
+              width: width,
             ),
           ),
         ),
@@ -128,7 +132,7 @@ class _HandSignatureViewSvg extends StatefulWidget {
 }
 
 class _HandSignatureViewSvgState extends State<_HandSignatureViewSvg> {
-  List<Path> paths;
+  DrawableParent drawable;
 
   @override
   void initState() {
@@ -139,17 +143,10 @@ class _HandSignatureViewSvgState extends State<_HandSignatureViewSvg> {
 
   void _parseData(String data) async {
     if (data == null) {
-      paths = null;
+      drawable = null;
     } else {
       final parser = SvgParser();
-      final root = await parser.parse(data);
-
-      if (root == null) {
-        paths = null;
-        return;
-      }
-
-      paths = OffsetMath.parseDrawable(root);
+      drawable = await parser.parse(data);
     }
 
     setState(() {});
@@ -160,9 +157,9 @@ class _HandSignatureViewSvgState extends State<_HandSignatureViewSvg> {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.data != widget.data) {
-      if (paths != null) {
+      if (drawable != null) {
         setState(() {
-          paths = null;
+          drawable = null;
         });
       }
 
@@ -172,7 +169,7 @@ class _HandSignatureViewSvgState extends State<_HandSignatureViewSvg> {
 
   @override
   Widget build(BuildContext context) => HandSignatureView(
-        data: paths,
+        data: drawable,
         color: widget.color,
         width: widget.width,
         padding: widget.padding,

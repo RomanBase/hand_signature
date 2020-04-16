@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hand_signature/signature_control.dart';
 
-class LineSignaturePainter extends CustomPainter {
+class PathSignaturePainter extends CustomPainter {
   final List<CubicPath> paths;
   final Color color;
   final double width;
   final double maxWidth;
   final bool Function(Size size) onSize;
 
-  LineSignaturePainter({
+  PathSignaturePainter({
     @required this.paths,
     this.color: Colors.black,
     this.width: 1.0,
@@ -49,18 +50,18 @@ class LineSignaturePainter extends CustomPainter {
   }
 }
 
-class HandSignaturePainter extends CustomPainter {
-  final List<Path> paths;
+class DrawableSignaturePainter extends CustomPainter {
+  final DrawableParent drawable;
   final Color color;
   final double width;
   final bool Function(Size size) onSize;
 
-  HandSignaturePainter({
-    @required this.paths,
-    this.color: Colors.black,
-    this.width: 6.0,
+  DrawableSignaturePainter({
+    @required this.drawable,
+    this.color,
+    this.width,
     this.onSize,
-  }) : assert(paths != null);
+  }) : assert(drawable != null);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -71,85 +72,41 @@ class HandSignaturePainter extends CustomPainter {
     }
 
     final paint = Paint()
-      ..color = color
+      ..color = color ?? drawable.style?.stroke?.color ?? Colors.black
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = width;
+      ..strokeWidth = width ?? drawable.style?.stroke?.strokeWidth ?? 1.0;
 
-    paths.forEach((path) {
-      canvas.drawPath(path, paint);
-    });
+    _draw(drawable, canvas, paint);
+  }
+
+  void _draw(DrawableParent root, Canvas canvas, Paint paint) {
+    if (root.children != null) {
+      root.children.forEach((drawable) {
+        if (drawable is DrawableShape) {
+          final style = drawable.style?.stroke;
+
+          if (style != null) {
+            if (style.color != null) {
+              paint.color = style.color;
+            }
+            if (style.strokeWidth != null) {
+              paint.strokeWidth = style.strokeWidth;
+            }
+          }
+
+          canvas.drawPath(drawable.path, paint);
+        } else if (drawable is DrawableParent) {
+          _draw(drawable, canvas, paint);
+        }
+      });
+    }
   }
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) {
     return true;
-  }
-}
-
-class HandSignaturePaint extends StatefulWidget {
-  final HandSignatureControl control;
-  final Color color;
-  final double width;
-  final bool Function(Size size) onSize;
-
-  const HandSignaturePaint({
-    Key key,
-    this.control,
-    this.color: Colors.black,
-    this.width: 6.0,
-    this.onSize,
-  }) : super(key: key);
-
-  @override
-  _HandSignaturePaintState createState() => _HandSignaturePaintState();
-}
-
-class _HandSignaturePaintState extends State<HandSignaturePaint> {
-  @override
-  void initState() {
-    super.initState();
-
-    widget.control.params = SignaturePaintParams(
-      color: widget.color,
-      width: widget.width,
-    );
-
-    widget.control.addListener(_updateState);
-  }
-
-  void _updateState() {
-    setState(() {});
-  }
-
-  @override
-  void didUpdateWidget(HandSignaturePaint oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    if (oldWidget.control != widget.control) {
-      oldWidget.control.removeListener(_updateState);
-      widget.control.addListener(_updateState);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: LineSignaturePainter(
-        paths: widget.control.paths,
-        color: widget.color,
-        width: widget.width,
-        onSize: widget.onSize,
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-
-    widget.control.removeListener(_updateState);
   }
 }
 

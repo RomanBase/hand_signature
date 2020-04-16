@@ -4,7 +4,7 @@ import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:hand_signature/path_math.dart';
+import 'package:hand_signature/path_util.dart';
 
 import 'signature_painter.dart';
 
@@ -18,9 +18,9 @@ class SignaturePaintParams {
   String get opacity => '${color.opacity}}';
 
   const SignaturePaintParams({
-    @required this.color,
-    @required this.width,
-    this.maxWidth,
+    this.color: Colors.black,
+    this.width: 1.0,
+    this.maxWidth: 10.0,
   });
 }
 
@@ -292,7 +292,6 @@ class CubicPath {
 
   void _addLine(CubicLine line) {
     if (_lines.length == 0) {
-      print(_currentVelocity);
       if (_currentVelocity == 0.0) {
         _currentVelocity = line._velocity;
       }
@@ -456,7 +455,7 @@ class CubicPath {
       return;
     }
 
-    final data = OffsetMath.scale(_arcs, ratio);
+    final data = PathUtil.scale(_arcs, ratio);
 
     _arcs.clear();
     _arcs.addAll(data.cast<CubicArc>());
@@ -611,8 +610,8 @@ class HandSignatureControl extends ChangeNotifier {
     );
 
     final rect = Rect.fromLTRB(0.0, 0.0, width, height);
-    final bounds = OffsetMath.boundsOf(_offsets);
-    final data = OffsetMath.fillOf(_cubicLines, rect, bound: bounds, border: params.width + border);
+    final bounds = PathUtil.boundsOf(_offsets);
+    final data = PathUtil.fillOf(_cubicLines, rect, bound: bounds, border: params.width + border);
 
     final buffer = StringBuffer();
     buffer.writeln('<?xml version="1.0" encoding="UTF-8" standalone="no"?>');
@@ -631,19 +630,20 @@ class HandSignatureControl extends ChangeNotifier {
     return buffer.toString();
   }
 
-  String asSvg({double width: 256.0, double height: 256.0, double border: 0.0, double size: 1.0, double maxSize: 10.0}) {
+  String asSvg({double width: 256.0, double height: 256.0, double border: 0.0}) {
     if (!isFilled) {
       return null;
     }
 
     params ??= SignaturePaintParams(
       color: Colors.black,
-      width: maxSize,
+      width: 1.0,
+      maxWidth: 10.0,
     );
 
     final rect = Rect.fromLTRB(0.0, 0.0, width, height);
-    final bounds = OffsetMath.boundsOf(_offsets);
-    final data = OffsetMath.fill(_arcs, rect, bound: bounds, border: params.width + border).cast<CubicArc>();
+    final bounds = PathUtil.boundsOf(_offsets);
+    final data = PathUtil.fill(_arcs, rect, bound: bounds, border: params.width + border).cast<CubicArc>();
 
     if (data == null) {
       return null;
@@ -655,7 +655,7 @@ class HandSignatureControl extends ChangeNotifier {
     buffer.writeln('<g stroke="${params.hexColor}" fill="none" stroke-width="${params.width}" stroke-linecap="round" stroke-linejoin="round" >');
 
     data.forEach((arc) {
-      final strokeSize = size + (maxSize - size) * arc.size;
+      final strokeSize = params.width + (params.maxWidth - params.width) * arc.size;
       buffer.writeln('<path d="M ${arc.dx} ${arc.dy} A 0 0, ${CubicArc.rotation}, 0, 0, ${arc.location.dx} ${arc.location.dy}" stroke-width="$strokeSize" \/>');
     });
 
@@ -666,13 +666,15 @@ class HandSignatureControl extends ChangeNotifier {
   }
 
   Picture asPicture({double width: 256.0, double height: 256.0}) {
-    final data = OffsetMath.fillOf(_offsets, Rect.fromLTRB(0.0, 0.0, width, height));
+    final data = PathUtil.fill(_arcs, Rect.fromLTRB(0.0, 0.0, width, height)).cast<CubicArc>();
+    final path = CubicPath().._arcs.addAll(data);
 
     final recorder = PictureRecorder();
-    final painter = HandSignaturePainter(
-      paths: OffsetMath.asPathOf(data),
+    final painter = PathSignaturePainter(
+      paths: [path],
       color: params?.color,
       width: params?.width,
+      maxWidth: params?.maxWidth,
     );
 
     final canvas = Canvas(

@@ -4,7 +4,7 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class OffsetMath {
+class PathUtil {
   static Rect bounds(List<Offset> data) {
     double left = data[0].dx;
     double top = data[0].dy;
@@ -216,7 +216,7 @@ class OffsetMath {
 
     _parseDrawableRoot(root, list);
 
-    return OffsetMath.translatePathOf(list, -OffsetMath.pathBoundsOf(list).topLeft);
+    return PathUtil.translatePathOf(list, -PathUtil.pathBoundsOf(list).topLeft);
   }
 
   static _parseDrawableRoot(DrawableParent root, List<Path> output) {
