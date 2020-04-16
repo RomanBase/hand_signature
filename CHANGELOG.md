@@ -1,3 +1,3 @@
-## [0.5.0] - TODO: Add release date.
+## [0.5.0] - Alpha version of signature pad.
 
-* TODO: Describe initial release.
+Signature pad for smooth and real hand signatures.
