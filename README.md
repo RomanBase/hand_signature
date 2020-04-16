@@ -39,7 +39,7 @@ There are more ways and more formats how to export signature. Most used are **sv
 ```
 
 **Parsing**\
-Resulting **svg** is possible to display in classic ![flutter_svg](https://pub.dev/packages/flutter_svg) widget.\
+Resulting **svg** is possible to display in classic [flutter_svg](https://pub.dev/packages/flutter_svg) widget.\
 Or use build in **HandSignatureView** for greater control.
 ```dart
     final widget = HandSignatureView.svg(
@@ -53,5 +53,5 @@ Or use build in **HandSignatureView** for greater control.
 **Contribution**\
 Any contribution is highly welcomed.\
 Library is in good condition, but still in early development.\
-Mainly more improve smoothing and line size to better match real signature.\
-Also currently there are no test or documentation.
+Mainly to improve smoothing and line weight to better match real signature.\
+Also currently there are no tests or documentation.
