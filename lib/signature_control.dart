@@ -77,6 +77,10 @@ class CubicLine extends Offset {
   double _velocity;
   double _distance;
 
+  Path get path => Path()
+    ..moveTo(dx, dy)
+    ..cubicTo(cpStart.dx, cpStart.dy, cpEnd.dx, cpEnd.dy, end.dx, end.dy);
+
   CubicLine({
     @required this.start,
     @required this.cpStart,
@@ -176,14 +180,14 @@ class CubicLine extends Offset {
     return value;
   }
 
-  List<CubicArc> arcPath(double size, double deltaSize, {double precision: 2.0}) {
+  List<CubicArc> arcPath(double size, double deltaSize, {double precision: 0.5}) {
     final list = List<CubicArc>();
 
-    final steps = (_distance * precision).floor();
+    final steps = (_distance * precision).floor().clamp(1, 10);
 
     Offset start = this.start;
     for (int i = 0; i < steps; i++) {
-      final t = i / steps;
+      final t = (i + 1) / steps;
       final loc = point(t);
       final width = size + deltaSize * t;
 
@@ -209,6 +213,8 @@ class CubicArc extends Offset {
   Path get path => Path()
     ..moveTo(dx, dy)
     ..arcToPoint(location, rotation: rotation);
+
+  Rect get rect => Rect.fromPoints(this, location);
 
   CubicArc({
     @required Offset start,
@@ -250,8 +256,6 @@ class CubicPath {
 
   Path _temp;
 
-  Path get path => Path();
-
   Path get tempPath => _temp;
 
   double maxVelocity = 1.0;
@@ -291,6 +295,13 @@ class CubicPath {
 
     _currentSize = endSize;
     _currentVelocity = combinedVelocity;
+  }
+
+  void _addDot(CubicLine line) {
+    final size = 0.25 + _lineSize(_currentVelocity, maxVelocity) * 0.5;
+
+    _lines.add(line);
+    _arcs.addAll(line.arcPath(size, 0.0));
   }
 
   double _lineSize(double velocity, double max) {
@@ -375,7 +386,7 @@ class CubicPath {
 
     if (_points.length < 3) {
       if (_points.length == 1) {
-        _addLine(CubicLine(
+        _addDot(CubicLine(
           start: _points[0],
           cpStart: _points[0],
           cpEnd: _points[0],
@@ -510,7 +521,7 @@ class HandSignatureControl extends ChangeNotifier {
       smoothRatio: smoothRatio,
     )..maxVelocity = velocityRange;
 
-    _activePath.begin(point, velocity: _paths.isNotEmpty ? _paths[0]._currentVelocity : 0.0);
+    _activePath.begin(point, velocity: _paths.isNotEmpty ? _paths.last._currentVelocity : 0.0);
 
     _paths.add(_activePath);
   }

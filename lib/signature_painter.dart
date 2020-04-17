@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hand_signature/signature_control.dart';
+import 'dart:math' as math;
 
 class PathSignaturePainter extends CustomPainter {
   final List<CubicPath> paths;
@@ -39,9 +40,22 @@ class PathSignaturePainter extends CustomPainter {
     paths.forEach((path) {
       path.arcs.forEach((arc) {
         paint.strokeWidth = width + (maxWidth - width) * arc.size;
-        canvas.drawPath(arc.path, paint);
+        canvas.drawLine(arc, arc.location, paint);
       });
     });
+
+    /*paths.forEach((path) {
+      path.arcs.forEach((arc) {
+        paint.strokeWidth = width + (maxWidth - width) * arc.size;
+        canvas.drawPath(arc.path, paint);
+      });
+    });*/
+
+    /*paths.forEach((path) {
+      path.lines.forEach((line) {
+        canvas.drawPath(line.path, paint);
+      });
+    });*/
   }
 
   @override
