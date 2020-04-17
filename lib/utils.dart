@@ -192,7 +192,7 @@ class PathUtil {
     return paths;
   }
 
-  static Rect pathBoundsOf(List<Path> data) {
+  static Rect pathBounds(List<Path> data) {
     Rect init = data[0].getBounds();
 
     double left = init.left;
@@ -219,7 +219,7 @@ class PathUtil {
     return data.transform(transform.storage);
   }
 
-  static List<Path> scalePathOf(List<Path> data, double ratio) {
+  static List<Path> scalePaths(List<Path> data, double ratio) {
     final output = List<Path>();
 
     data.forEach((path) => output.add(scalePath(path, ratio)));
@@ -227,7 +227,7 @@ class PathUtil {
     return output;
   }
 
-  static List<Path> translatePathOf(List<Path> data, Offset location) {
+  static List<Path> translatePaths(List<Path> data, Offset location) {
     final output = List<Path>();
 
     final transform = Matrix4.identity();
@@ -243,7 +243,7 @@ class PathUtil {
 
     _parseDrawableRoot(root, list);
 
-    return PathUtil.translatePathOf(list, -PathUtil.pathBoundsOf(list).topLeft);
+    return PathUtil.translatePaths(list, -PathUtil.pathBounds(list).topLeft);
   }
 
   static _parseDrawableRoot(DrawableParent root, List<Path> output) {

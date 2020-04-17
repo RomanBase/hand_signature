@@ -5,7 +5,7 @@ import 'package:flutter_svg/parser.dart';
 import 'package:hand_signature/signature_control.dart';
 import 'package:hand_signature/signature_painter.dart';
 
-import 'path_util.dart';
+import 'utils.dart';
 import 'signature_paint.dart';
 
 class HandSignaturePainterView extends StatelessWidget {
@@ -95,7 +95,7 @@ class HandSignatureView extends StatelessWidget {
         fit: BoxFit.contain,
         alignment: Alignment.center,
         child: SizedBox.fromSize(
-          size: PathUtil.pathBoundsOf(PathUtil.parseDrawable(data)).size,
+          size: PathUtil.pathBounds(PathUtil.parseDrawable(data)).size,
           child: CustomPaint(
             painter: DrawableSignaturePainter(
               drawable: data,
