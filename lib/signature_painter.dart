@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hand_signature/signature_control.dart';
-import 'dart:math' as math;
+
+enum SignatureDrawType {
+  line,
+  arc,
+  shape,
+}
 
 class PathSignaturePainter extends CustomPainter {
   final List<CubicPath> paths;
@@ -9,6 +14,7 @@ class PathSignaturePainter extends CustomPainter {
   final double width;
   final double maxWidth;
   final bool Function(Size size) onSize;
+  final SignatureDrawType type;
 
   PathSignaturePainter({
     @required this.paths,
@@ -16,6 +22,7 @@ class PathSignaturePainter extends CustomPainter {
     this.width: 1.0,
     this.maxWidth: 10.0,
     this.onSize,
+    this.type: SignatureDrawType.shape,
   }) : assert(paths != null);
 
   @override
@@ -37,25 +44,32 @@ class PathSignaturePainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round
       ..strokeWidth = width;
 
-    paths.forEach((path) {
-      path.arcs.forEach((arc) {
-        paint.strokeWidth = width + (maxWidth - width) * arc.size;
-        canvas.drawLine(arc, arc.location, paint);
-      });
-    });
+    switch (type) {
+      case SignatureDrawType.line:
+        paths.forEach((path) {
+          path.lines.forEach((line) {
+            canvas.drawPath(line.path, paint);
+          });
+        });
+        break;
+      case SignatureDrawType.arc:
+        paths.forEach((path) {
+          path.arcs.forEach((arc) {
+            paint.strokeWidth = width + (maxWidth - width) * arc.size;
+            canvas.drawPath(arc.path, paint);
+          });
+        });
+        break;
+      case SignatureDrawType.shape:
+        paint.style = PaintingStyle.fill;
 
-    /*paths.forEach((path) {
-      path.arcs.forEach((arc) {
-        paint.strokeWidth = width + (maxWidth - width) * arc.size;
-        canvas.drawPath(arc.path, paint);
-      });
-    });*/
-
-    /*paths.forEach((path) {
-      path.lines.forEach((line) {
-        canvas.drawPath(line.path, paint);
-      });
-    });*/
+        paths.forEach((path) {
+          path.lines.forEach((line) {
+            canvas.drawPath(line.shape(width, maxWidth), paint);
+          });
+        });
+        break;
+    }
   }
 
   @override

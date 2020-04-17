@@ -29,6 +29,28 @@ extension OffsetEx on Offset {
 
     return Offset(len.dx / m, len.dy / m);
   }
+
+  Offset rotate(double radians) {
+    final s = sin(radians);
+    final c = cos(radians);
+
+    final x = dx * c - dy * s;
+    final y = dx * s + dy * c;
+
+    return Offset(x, y);
+  }
+
+  Offset rotateAround(Offset center, double radians) {
+    return (this - center).rotate(radians) + center;
+  }
+}
+
+extension PathEx on Path {
+  void start(Offset offset) => moveTo(offset.dx, offset.dy);
+
+  void cubic(Offset cpStart, Offset cpEnd, Offset end) => cubicTo(cpStart.dx, cpStart.dy, cpEnd.dx, cpEnd.dy, end.dx, end.dy);
+
+  void line(Offset offset) => lineTo(offset.dx, offset.dy);
 }
 
 class PathUtil {

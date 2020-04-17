@@ -77,6 +77,17 @@ class CubicLine extends Offset {
   double _velocity;
   double _distance;
 
+  Offset _upStartVector;
+
+  Offset get upStartVector => _upStartVector ?? (_upStartVector = start.directionTo(point(0.001)).rotate(-math.pi * 0.5));
+
+  Offset _upEndVector;
+
+  Offset get upEndVector => _upEndVector ?? (_upEndVector = end.directionTo(point(0.999)).rotate(math.pi * 0.5));
+
+  double startSize;
+  double endSize;
+
   Path get path => Path()
     ..moveTo(dx, dy)
     ..cubicTo(cpStart.dx, cpStart.dy, cpEnd.dx, cpEnd.dy, end.dx, end.dy);
@@ -86,7 +97,13 @@ class CubicLine extends Offset {
     @required this.cpStart,
     @required this.cpEnd,
     @required this.end,
+    Offset upStartVector,
+    Offset upEndVector,
+    this.startSize: 0.0,
+    this.endSize: 0.0,
   }) : super(start.dx, start.dy) {
+    _upStartVector = upStartVector;
+    _upEndVector = upEndVector;
     _velocity = end.velocityFrom(start);
     _distance = start.distanceTo(end);
   }
@@ -122,6 +139,10 @@ class CubicLine extends Offset {
         cpStart: cpStart.scale(scaleX, scaleY),
         cpEnd: cpEnd.scale(scaleX, scaleY),
         end: end.scale(scaleX, scaleY),
+        upStartVector: _upStartVector,
+        upEndVector: _upEndVector,
+        startSize: startSize,
+        endSize: endSize,
       );
 
   @override
@@ -130,6 +151,10 @@ class CubicLine extends Offset {
         cpStart: cpStart.translate(translateX, translateY),
         cpEnd: cpEnd.translate(translateX, translateY),
         end: end.translate(translateX, translateY),
+        upStartVector: _upStartVector,
+        upEndVector: _upEndVector,
+        startSize: startSize,
+        endSize: endSize,
       );
 
   /// 0 - fastest, raw accuracy
@@ -201,6 +226,31 @@ class CubicLine extends Offset {
     }
 
     return list;
+  }
+
+  Path shape(double size, double maxSize) {
+    final startArm = (size + (maxSize - size) * startSize) * 0.5;
+    final endArm = (size + (maxSize - size) * endSize) * 0.5;
+
+    final sDirUp = upStartVector;
+    final eDirUp = upEndVector;
+
+    final d1 = sDirUp * startArm;
+    final d2 = eDirUp * endArm;
+    final d3 = eDirUp.rotate(math.pi) * endArm;
+    final d4 = sDirUp.rotate(math.pi) * startArm;
+
+    final s1 = d1 * startArm;
+    final s2 = d2 * endArm;
+    final s3 = d3 * endArm;
+    final s4 = d4 * startArm;
+
+    return Path()
+      ..start(start + s1)
+      ..cubic(cpStart + s1, cpEnd + s2, end + s2)
+      ..line(end + s3)
+      ..cubic(cpEnd + s3, cpStart + s4, start + s4)
+      ..close();
   }
 }
 
@@ -280,6 +330,8 @@ class CubicPath {
       if (_currentSize == 0.0) {
         _currentSize = _lineSize(_currentVelocity, maxVelocity);
       }
+    } else {
+      line._upStartVector = _lines.last.upEndVector;
     }
 
     _lines.add(line);
@@ -290,6 +342,9 @@ class CubicPath {
     if (combinedVelocity > maxVelocity) {
       maxVelocity = combinedVelocity;
     }
+
+    line.startSize = _currentSize;
+    line.endSize = endSize;
 
     _arcs.addAll(line.arcPath(_currentSize, endSize - _currentSize));
 

@@ -4,7 +4,7 @@ import 'package:hand_signature/signature.dart';
 void main() => runApp(MyApp());
 
 HandSignatureControl control = new HandSignatureControl(
-  threshold: 3.0,
+  threshold: 5.0,
   smoothRatio: 0.65,
   velocityRange: 2.0,
 );
