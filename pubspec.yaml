@@ -1,7 +1,7 @@
 name: hand_signature
 description: The signature pad widget that allows to draw signature with finger.
 homepage: https://basecontrol.dev
-version: 0.5.0
+version: 0.5.1
 
 environment:
   sdk: ">=2.6.0 <3.0.0"
