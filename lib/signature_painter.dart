@@ -16,13 +16,24 @@ class PathSignaturePainter extends CustomPainter {
   final bool Function(Size size) onSize;
   final SignatureDrawType type;
 
+  Paint get strokePaint => Paint()
+    ..color = color
+    ..style = PaintingStyle.stroke
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round
+    ..strokeWidth = width;
+
+  Paint get fillPaint => Paint()
+    ..color = color
+    ..strokeWidth = 0.0;
+
   PathSignaturePainter({
     @required this.paths,
     this.color: Colors.black,
     this.width: 1.0,
     this.maxWidth: 10.0,
     this.onSize,
-    this.type: SignatureDrawType.shape,
+    this.type: SignatureDrawType.arc,
   }) : assert(paths != null);
 
   @override
@@ -37,15 +48,10 @@ class PathSignaturePainter extends CustomPainter {
       return;
     }
 
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = width;
-
     switch (type) {
       case SignatureDrawType.line:
+        final paint = strokePaint;
+
         paths.forEach((path) {
           path.lines.forEach((line) {
             canvas.drawPath(line.path, paint);
@@ -53,6 +59,8 @@ class PathSignaturePainter extends CustomPainter {
         });
         break;
       case SignatureDrawType.arc:
+        final paint = strokePaint;
+
         paths.forEach((path) {
           path.arcs.forEach((arc) {
             paint.strokeWidth = width + (maxWidth - width) * arc.size;
@@ -61,13 +69,20 @@ class PathSignaturePainter extends CustomPainter {
         });
         break;
       case SignatureDrawType.shape:
-        paint.style = PaintingStyle.fill;
+        final paint = fillPaint;
 
         paths.forEach((path) {
           path.lines.forEach((line) {
             canvas.drawPath(line.shape(width, maxWidth), paint);
           });
+
+          final first = path.lines.first;
+          final last = path.lines.last;
+
+          canvas.drawCircle(first.start, (width + (maxWidth - width) * first.startSize) * 0.5, paint);
+          canvas.drawCircle(last.end, (width + (maxWidth - width) * last.endSize) * 0.5, paint);
         });
+
         break;
     }
   }

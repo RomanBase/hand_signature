@@ -240,16 +240,11 @@ class CubicLine extends Offset {
     final d3 = eDirUp.rotate(math.pi) * endArm;
     final d4 = sDirUp.rotate(math.pi) * startArm;
 
-    final s1 = d1 * startArm;
-    final s2 = d2 * endArm;
-    final s3 = d3 * endArm;
-    final s4 = d4 * startArm;
-
     return Path()
-      ..start(start + s1)
-      ..cubic(cpStart + s1, cpEnd + s2, end + s2)
-      ..line(end + s3)
-      ..cubic(cpEnd + s3, cpStart + s4, start + s4)
+      ..start(start + d1)
+      ..cubic(cpStart + d1, cpEnd + d2, end + d2)
+      ..line(end + d3)
+      ..cubic(cpEnd + d3, cpStart + d4, start + d4)
       ..close();
   }
 }
@@ -642,7 +637,7 @@ class HandSignatureControl extends ChangeNotifier {
     return true;
   }
 
-  String toSimplePathSvg({int width: 512, int height: 256, double border: 0.0, Color color, double size}) {
+  String toSvg({SignatureDrawType type: SignatureDrawType.arc, int width: 512, int height: 256, double border: 0.0, Color color, double size, double maxSize}) {
     if (!isFilled) {
       return null;
     }
@@ -653,9 +648,23 @@ class HandSignatureControl extends ChangeNotifier {
       maxWidth: 10.0,
     );
 
-    size ??= params.width;
     color ??= params.color;
+    size ??= params.width;
+    maxSize ??= params.maxWidth;
 
+    switch (type) {
+      case SignatureDrawType.line:
+        return _exportPathSvg(width: width, height: height, border: border, color: color, size: size);
+      case SignatureDrawType.arc:
+        return _exportArcSvg(width: width, height: height, border: border, color: color, size: size, maxSize: maxSize);
+      case SignatureDrawType.shape:
+        return _exportShapeSvg(width: width, height: height, border: border, color: color, size: size, maxSize: maxSize);
+    }
+
+    return null;
+  }
+
+  String _exportPathSvg({int width: 512, int height: 256, double border: 0.0, Color color, double size}) {
     final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
     final bounds = PathUtil.boundsOf(_offsets);
     final data = PathUtil.fillOf(_cubicLines, rect, bound: bounds, border: size + border);
@@ -677,21 +686,7 @@ class HandSignatureControl extends ChangeNotifier {
     return buffer.toString();
   }
 
-  String toSvg({int width: 512, int height: 256, double border: 0.0, Color color, double size, double maxSize}) {
-    if (!isFilled) {
-      return null;
-    }
-
-    params ??= SignaturePaintParams(
-      color: Colors.black,
-      width: 1.0,
-      maxWidth: 10.0,
-    );
-
-    color ??= params.color;
-    size ??= params.width;
-    maxSize ??= params.maxWidth;
-
+  String _exportArcSvg({int width: 512, int height: 256, double border: 0.0, Color color, double size, double maxSize}) {
     final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
     final bounds = PathUtil.boundsOf(_offsets);
     final data = PathUtil.fill(_arcs, rect, bound: bounds, border: maxSize + border).cast<CubicArc>();
@@ -708,6 +703,30 @@ class HandSignatureControl extends ChangeNotifier {
     data.forEach((arc) {
       final strokeSize = size + (maxSize - size) * arc.size;
       buffer.writeln('<path d="M ${arc.dx} ${arc.dy} A 0 0, ${CubicArc.rotation}, 0, 0, ${arc.location.dx} ${arc.location.dy}" stroke-width="$strokeSize" \/>');
+    });
+
+    buffer.writeln('<\/g>');
+    buffer.writeln('<\/svg>');
+
+    return buffer.toString();
+  }
+
+  String _exportShapeSvg({int width: 512, int height: 256, double border: 0.0, Color color, double size, double maxSize}) {
+    final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
+    final bounds = PathUtil.boundsOf(_offsets);
+    final data = PathUtil.fillOf(_cubicLines, rect, bound: bounds, border: maxSize + border).cast<CubicArc>();
+
+    if (data == null) {
+      return null;
+    }
+
+    final buffer = StringBuffer();
+    buffer.writeln('<?xml version="1.0" encoding="UTF-8" standalone="no"?>');
+    buffer.writeln('<svg width="$width" height="$height" xmlns="http://www.w3.org/2000/svg">');
+    buffer.writeln('<g stroke="${color.hexValue}" fill="none" stroke-linecap="round" stroke-linejoin="round" >');
+
+    data.forEach((line) {
+      //TODO
     });
 
     buffer.writeln('<\/g>');
