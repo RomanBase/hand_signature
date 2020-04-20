@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'signature_control.dart';
-import 'signature_painter.dart';
+import '../signature.dart';
 
 class HandSignaturePaint extends StatefulWidget {
   final HandSignatureControl control;

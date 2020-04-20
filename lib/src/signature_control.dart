@@ -4,9 +4,9 @@ import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:hand_signature/utils.dart';
 
-import 'signature_painter.dart';
+import '../signature.dart';
+import 'utils.dart';
 
 class SignaturePaintParams {
   final Color color;

@@ -1,4 +1,4 @@
-export 'signature_control.dart';
-export 'signature_paint.dart';
-export 'signature_painter.dart';
-export 'signature_view.dart';
+export 'src/signature_control.dart';
+export 'src/signature_paint.dart';
+export 'src/signature_painter.dart';
+export 'src/signature_view.dart';

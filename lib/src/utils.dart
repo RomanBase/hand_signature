@@ -4,7 +4,7 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import 'signature.dart';
+import '../signature.dart';
 
 extension ColorEx on Color {
   String get hexValue => '#${value.toRadixString(16)}'.replaceRange(1, 3, '');

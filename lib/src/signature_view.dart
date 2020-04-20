@@ -2,10 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_svg/parser.dart';
-import 'package:hand_signature/signature_control.dart';
-import 'package:hand_signature/signature_painter.dart';
 
-import 'signature_paint.dart';
+import '../signature.dart';
 import 'utils.dart';
 
 class HandSignaturePainterView extends StatelessWidget {
