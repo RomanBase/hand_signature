@@ -42,7 +42,7 @@ class MyApp extends StatelessWidget {
                               ),
                             ),
                             CustomPaint(
-                              painter: SignaturePainterCP(
+                              painter: DebugSignaturePainterCP(
                                 control: control,
                                 cp: false,
                                 cpStart: false,
@@ -89,6 +89,13 @@ class MyApp extends StatelessWidget {
                       return HandSignatureView.svg(
                         data: data,
                         strokeWidth: (width) => width * 0.5,
+                        padding: EdgeInsets.all(16.0),
+                        placeholder: Container(
+                          color: Colors.red,
+                          child: Center(
+                            child: Text('not signed yet'),
+                          ),
+                        ),
                       );
                     },
                   ),

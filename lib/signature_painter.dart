@@ -168,7 +168,7 @@ class DrawableSignaturePainter extends CustomPainter {
   }
 }
 
-class SignaturePainterCP extends CustomPainter {
+class DebugSignaturePainterCP extends CustomPainter {
   final HandSignatureControl control;
   final bool cp;
   final bool cpStart;
@@ -176,7 +176,7 @@ class SignaturePainterCP extends CustomPainter {
   final bool dot;
   final Color color;
 
-  SignaturePainterCP({
+  DebugSignaturePainterCP({
     @required this.control,
     this.cp: false,
     this.cpStart: true,
