@@ -4,6 +4,8 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import 'signature.dart';
+
 extension ColorEx on Color {
   String get hexValue => '#${value.toRadixString(16)}'.replaceRange(1, 3, '');
 }
@@ -53,6 +55,7 @@ extension PathEx on Path {
   void line(Offset offset) => lineTo(offset.dx, offset.dy);
 }
 
+//TODO: clean up
 class PathUtil {
   static Rect bounds(List<Offset> data) {
     double left = data[0].dx;
@@ -194,22 +197,21 @@ class PathUtil {
         borderSize);
   }
 
-  static Path asPath(List<Offset> points) {
+  static Path pointsPath(List<Offset> points) {
     final path = Path();
 
     if (points.length > 0) {
       path.moveTo(points[0].dx, points[0].dy);
-      //points.forEach((point) => path.arcToPoint(point));
       points.forEach((point) => path.lineTo(point.dx, point.dy));
     }
 
     return path;
   }
 
-  static List<Path> asPathOf(List<List<Offset>> data) {
+  static List<Path> pointsPathOf(List<List<Offset>> data) {
     final paths = List<Path>();
 
-    data.forEach((line) => paths.add(asPath(line)));
+    data.forEach((line) => paths.add(pointsPath(line)));
 
     return paths;
   }
@@ -278,5 +280,36 @@ class PathUtil {
         }
       });
     }
+  }
+
+  //TODO: dot support
+  static Path toShape(List<CubicLine> lines, double size, double maxSize) {
+    final path = Path();
+
+    final firstLine = lines.first;
+    path.start(firstLine.start + firstLine.cpsUp(size, maxSize));
+
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i];
+      final d1 = line.cpsUp(size, maxSize);
+      final d2 = line.cpeUp(size, maxSize);
+
+      path.cubic(line.cpStart + d1, line.cpEnd + d2, line.end + d2);
+    }
+
+    final lastLine = lines.last;
+    path.line(lastLine.end + lastLine.cpeDown(size, maxSize));
+
+    for (int i = lines.length - 1; i > -1; i--) {
+      final line = lines[i];
+      final d3 = line.cpeDown(size, maxSize);
+      final d4 = line.cpsDown(size, maxSize);
+
+      path.cubic(line.cpEnd + d3, line.cpStart + d4, line.start + d4);
+    }
+
+    path.close();
+
+    return path;
   }
 }

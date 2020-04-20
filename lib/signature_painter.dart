@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hand_signature/signature_control.dart';
+import 'package:hand_signature/utils.dart';
 
 enum SignatureDrawType {
   line,
@@ -38,6 +39,7 @@ class PathSignaturePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    //TODO: move to widget/state
     if (onSize != null) {
       if (onSize(size)) {
         return;
@@ -73,7 +75,7 @@ class PathSignaturePainter extends CustomPainter {
 
         paths.forEach((path) {
           if (path.isFilled) {
-            canvas.drawPath(CubicLine.toShape(path.lines, width, maxWidth), paint);
+            canvas.drawPath(PathUtil.toShape(path.lines, width, maxWidth), paint);
 
             final first = path.lines.first;
             final last = path.lines.last;
@@ -108,7 +110,7 @@ class DrawableSignaturePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color ?? drawable.style?.stroke?.color ?? Colors.black
-      ..style = PaintingStyle.stroke
+      ..style = drawable.style.fill == null ? PaintingStyle.stroke : PaintingStyle.fill
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..strokeWidth = drawable.style?.stroke?.strokeWidth ?? 1.0;
@@ -120,18 +122,26 @@ class DrawableSignaturePainter extends CustomPainter {
     if (root.children != null) {
       root.children.forEach((drawable) {
         if (drawable is DrawableShape) {
-          final style = drawable.style?.stroke;
+          final stroke = drawable.style?.stroke;
+          final fill = drawable.style?.fill;
 
-          if (style != null) {
-            if (style.color != null) {
-              paint.color = style.color;
+          if (stroke != null) {
+            if (stroke.color != null) {
+              paint.color = stroke.color;
             }
-            if (style.strokeWidth != null) {
+
+            if (stroke.strokeWidth != null) {
               if (strokeWidth != null) {
-                paint.strokeWidth = strokeWidth(style.strokeWidth);
+                paint.strokeWidth = strokeWidth(stroke.strokeWidth);
               } else {
-                paint.strokeWidth = style.strokeWidth;
+                paint.strokeWidth = stroke.strokeWidth;
               }
+            }
+          }
+
+          if(fill != null){
+            if(fill.color != null){
+              paint.color = fill.color;
             }
           }
 
@@ -142,6 +152,8 @@ class DrawableSignaturePainter extends CustomPainter {
       });
     }
   }
+
+  PaintingStyle _getPaintingStyle(DrawableStyle style) => style.stroke?.style ?? style.fill?.style ?? PaintingStyle.fill;
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) {

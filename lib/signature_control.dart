@@ -227,39 +227,15 @@ class CubicLine extends Offset {
       ..close();
   }
 
-  static Path toShape(List<CubicLine> lines, double size, double maxSize) {
-    final path = Path();
+  Offset cpsUp(double size, double maxSize) => upStartVector * _armSize(size, maxSize, startSize);
 
-    final firstLine = lines.first;
-    path.start(firstLine.start + firstLine.upStartVector * firstLine._startArmSize(size, maxSize));
+  Offset cpeUp(double size, double maxSize) => upEndVector * _armSize(size, maxSize, endSize);
 
-    for (int i = 1; i < lines.length; i++) {
-      final line = lines[i];
-      final d1 = line.upStartVector * line._startArmSize(size, maxSize);
-      final d2 = line.upEndVector * line._endArmSize(size, maxSize);
+  Offset cpsDown(double size, double maxSize) => _downStartVector * _armSize(size, maxSize, startSize);
 
-      path.cubic(line.cpStart + d1, line.cpEnd + d2, line.end + d2);
-    }
+  Offset cpeDown(double size, double maxSize) => _downEndVector * _armSize(size, maxSize, endSize);
 
-    final lastLine = lines.last;
-    path.line(lastLine.end + lastLine._downEndVector * lastLine._endArmSize(size, maxSize));
-
-    for (int i = lines.length - 2; i > -1; i--) {
-      final line = lines[i];
-      final d3 = line._downEndVector * line._endArmSize(size, maxSize);
-      final d4 = line._downStartVector * line._startArmSize(size, maxSize);
-
-      path.cubic(line.cpEnd + d3, line.cpStart + d4, line.start + d4);
-    }
-
-    path.close();
-
-    return path;
-  }
-
-  double _startArmSize(double size, double maxSize) => (size + (maxSize - size) * startSize) * 0.5;
-
-  double _endArmSize(double size, double maxSize) => (size + (maxSize - size) * endSize) * 0.5;
+  double _armSize(double size, double maxSize, double t) => (size + (maxSize - size) * t) * 0.5;
 
   static Offset softCP(OffsetPoint current, {OffsetPoint previous, OffsetPoint next, bool reverse: false, double smoothing: 0.65}) {
     assert(smoothing >= 0.0 && smoothing <= 1.0);
@@ -478,7 +454,7 @@ class CubicPath {
           start: _points[0],
           cpStart: _points[0],
           cpEnd: _points[0],
-          end: _points[0],
+          end: _points[0].translate(0.01, 0.0),
         ));
       } else {
         _addLine(CubicLine(
@@ -640,6 +616,7 @@ class HandSignatureControl extends ChangeNotifier {
     notifyListeners();
   }
 
+  //TODO: currently works only when aspect ratio stays same..
   bool notifyDimension(Size size) {
     if (_areaSize == size) {
       return false;
@@ -659,7 +636,6 @@ class HandSignatureControl extends ChangeNotifier {
       return false;
     }
 
-    //TODO: currently works only when aspect ratio stays same..
     final ratioX = size.width / _areaSize.width;
     final ratioY = size.height / _areaSize.height;
     final scale = math.min(ratioX, ratioY);
@@ -675,7 +651,7 @@ class HandSignatureControl extends ChangeNotifier {
     return true;
   }
 
-  String toSvg({SignatureDrawType type: SignatureDrawType.arc, int width: 512, int height: 256, double border: 0.0, Color color, double size, double maxSize}) {
+  String toSvg({SignatureDrawType type: SignatureDrawType.shape, int width: 512, int height: 256, double border: 0.0, Color color, double size, double maxSize}) {
     if (!isFilled) {
       return null;
     }
@@ -752,7 +728,7 @@ class HandSignatureControl extends ChangeNotifier {
   String _exportShapeSvg({int width: 512, int height: 256, double border: 0.0, Color color, double size, double maxSize}) {
     final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
     final bounds = PathUtil.boundsOf(_offsets);
-    final data = PathUtil.fillOf(_cubicLines, rect, bound: bounds, border: maxSize + border).cast<CubicArc>();
+    final data = PathUtil.fillOf(_cubicLines, rect, bound: bounds, border: maxSize + border);
 
     if (data == null) {
       return null;
@@ -761,10 +737,44 @@ class HandSignatureControl extends ChangeNotifier {
     final buffer = StringBuffer();
     buffer.writeln('<?xml version="1.0" encoding="UTF-8" standalone="no"?>');
     buffer.writeln('<svg width="$width" height="$height" xmlns="http://www.w3.org/2000/svg">');
-    buffer.writeln('<g stroke="${color.hexValue}" fill="none" stroke-linecap="round" stroke-linejoin="round" >');
+    buffer.writeln('<g fill="${color.hexValue}">');
 
-    data.forEach((line) {
-      //TODO
+    data.forEach((linesData) {
+      final lines = linesData.cast<CubicLine>();
+
+      final firstLine = lines.first;
+      final start = firstLine.start + firstLine.cpsUp(size, maxSize);
+      buffer.write('<path d="M ${start.dx} ${start.dy}');
+
+      for (int i = 1; i < lines.length; i++) {
+        final line = lines[i];
+        final d1 = line.cpsUp(size, maxSize);
+        final d2 = line.cpeUp(size, maxSize);
+
+        final cpStart = line.cpStart + d1;
+        final cpEnd = line.cpEnd + d2;
+        final end = line.end + d2;
+
+        buffer.write(' C ${cpStart.dx} ${cpStart.dy} ${cpEnd.dx} ${cpEnd.dy} ${end.dx} ${end.dy}');
+      }
+
+      final lastLine = lines.last;
+      final half = lastLine.end + lastLine.cpeDown(size, maxSize);
+      buffer.write(' L ${half.dx} ${half.dy}');
+
+      for (int i = lines.length - 2; i > -1; i--) {
+        final line = lines[i];
+        final d3 = line.cpeDown(size, maxSize);
+        final d4 = line.cpsDown(size, maxSize);
+
+        final cpEnd = line.cpEnd + d3;
+        final cpStart = line.cpStart + d4;
+        final start = line.start + d4;
+
+        buffer.write(' C ${cpEnd.dx} ${cpEnd.dy} ${cpStart.dx} ${cpStart.dy} ${start.dx} ${start.dy}');
+      }
+
+      buffer.writeln(' z" />');
     });
 
     buffer.writeln('<\/g>');
@@ -793,6 +803,7 @@ class HandSignatureControl extends ChangeNotifier {
       color: color,
       width: size,
       maxWidth: maxSize,
+      type: SignatureDrawType.arc,
     );
 
     final canvas = Canvas(
