@@ -33,9 +33,9 @@ With **HandSignatureControl** and **HandSignaturePainterView** is possible to tw
 - threshold: (LP) controls minimal distance between two points - higher distance creates smoother curve, but less precise. Higher distance also creates bigger input draw lag.
 - smoothRatio: (0 - 1) controls how smooth curve will be - higher ratio creates smoother curve, but less precise. In most of cases are best results with values between 0.5 - 0.75.
 - velocityRange: (LP per millisecond) controls curve size based on distance and duration between two points. Thin line - fast move, thick line - slow move. With higher velocityRange user must swing faster to draw thinner line.
-- reverseVelocity: swaps velocity based stroke width. Thin line - slow move, thick line - fast move. Simply swaps min/max size. 
+- reverseVelocity: swaps stroke width. Thin line - slow move, thick line - fast move. Simply swaps min/max size based on velocity. 
 
-**HandSignaturePainterView** sets up visual style of signature curve.\
+**HandSignaturePainterView** sets up visual style of signature curve.
 - control: processes input, handles math and stores raw data.
 - color: just color of line.
 - width: minimal width of line. Width at maximum swing speed (clamped by velocityRange).
@@ -82,6 +82,6 @@ Currently stroke width can be controlled only for **line** and **arc** exports.\
 Any contribution is highly welcomed.\
 Library is in good condition, but still in early development.\
 Mainly to improve smoothing and line weight to better match real signature.\
-Remove dependency of [flutter_svg](https://pub.dev/packages/flutter_svg) and make library dependent only at [path_drawing](https://pub.dev/packages/path_drawing) or [path_parsing](https://pub.dev/packages/path_parsing).\
+Remove dependency to [flutter_svg](https://pub.dev/packages/flutter_svg) and make library dependent only on [path_drawing](https://pub.dev/packages/path_drawing) or [path_parsing](https://pub.dev/packages/path_parsing).\
 Performance can be always better..\
 Also currently there are no tests or documentation.
