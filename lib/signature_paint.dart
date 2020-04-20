@@ -8,6 +8,7 @@ class HandSignaturePaint extends StatefulWidget {
   final Color color;
   final double width;
   final double maxWidth;
+  final SignatureDrawType type;
   final bool Function(Size size) onSize;
 
   const HandSignaturePaint({
@@ -16,6 +17,7 @@ class HandSignaturePaint extends StatefulWidget {
     this.color: Colors.black,
     this.width: 1.0,
     this.maxWidth: 10.0,
+    this.type: SignatureDrawType.shape,
     this.onSize,
   }) : super(key: key);
 
@@ -59,6 +61,7 @@ class _HandSignaturePaintState extends State<HandSignaturePaint> {
         color: widget.color,
         width: widget.width,
         maxWidth: widget.maxWidth,
+        type: widget.type,
         onSize: widget.onSize,
       ),
     );

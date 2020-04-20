@@ -5,14 +5,15 @@ import 'package:flutter_svg/parser.dart';
 import 'package:hand_signature/signature_control.dart';
 import 'package:hand_signature/signature_painter.dart';
 
-import 'utils.dart';
 import 'signature_paint.dart';
+import 'utils.dart';
 
 class HandSignaturePainterView extends StatelessWidget {
+  final HandSignatureControl control;
   final Color color;
   final double width;
   final double maxWidth;
-  final HandSignatureControl control;
+  final SignatureDrawType type;
 
   HandSignaturePainterView({
     Key key,
@@ -20,6 +21,7 @@ class HandSignaturePainterView extends StatelessWidget {
     this.color: Colors.black,
     this.width: 1.0,
     this.maxWidth: 10.0,
+    this.type: SignatureDrawType.shape,
   }) : super(key: key);
 
   @override
@@ -40,6 +42,7 @@ class HandSignaturePainterView extends StatelessWidget {
           control: control,
           color: color,
           width: width,
+          type: type,
           onSize: control.notifyDimension,
         ),
       ),

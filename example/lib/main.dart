@@ -38,6 +38,7 @@ class MyApp extends StatelessWidget {
                               color: Colors.white,
                               child: HandSignaturePainterView(
                                 control: control,
+                                type: SignatureDrawType.shape,
                               ),
                             ),
                             CustomPaint(
