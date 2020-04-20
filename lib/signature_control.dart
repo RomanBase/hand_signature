@@ -85,6 +85,10 @@ class CubicLine extends Offset {
 
   Offset get upEndVector => _upEndVector ?? (_upEndVector = end.directionTo(point(0.999)).rotate(math.pi * 0.5));
 
+  Offset get _downStartVector => upStartVector.rotate(math.pi);
+
+  Offset get _downEndVector => upEndVector.rotate(math.pi);
+
   double startSize;
   double endSize;
 
@@ -106,31 +110,6 @@ class CubicLine extends Offset {
     _upEndVector = upEndVector;
     _velocity = end.velocityFrom(start);
     _distance = start.distanceTo(end);
-  }
-
-  static Offset softCP(OffsetPoint current, {OffsetPoint previous, OffsetPoint next, bool reverse: false, double smoothing: 0.65}) {
-    assert(smoothing >= 0.0 && smoothing <= 1.0);
-
-    previous ??= current;
-    next ??= current;
-
-    final sharpness = 1.0 - smoothing;
-
-    final dist1 = previous.distanceTo(current);
-    final dist2 = current.distanceTo(next);
-    final dist = dist1 + dist2;
-    final dir1 = current.directionTo(next);
-    final dir2 = current.directionTo(previous);
-    final dir3 = reverse ? next.directionTo(previous) : previous.directionTo(next);
-
-    final velocity = (dist * 0.3 / (next.timestamp - previous.timestamp)).clamp(0.5, 3.0);
-    final ratio = (dist * velocity * smoothing).clamp(0.0, (reverse ? dist2 : dist1) * 0.5);
-
-    final dir = ((reverse ? dir2 : dir1) * sharpness) + (dir3 * smoothing) * ratio;
-    final x = current.dx + dir.dx;
-    final y = current.dy + dir.dy;
-
-    return Offset(x, y);
   }
 
   @override
@@ -247,6 +226,65 @@ class CubicLine extends Offset {
       ..cubic(cpEnd + d3, cpStart + d4, start + d4)
       ..close();
   }
+
+  static Path toShape(List<CubicLine> lines, double size, double maxSize) {
+    final path = Path();
+
+    final firstLine = lines.first;
+    path.start(firstLine.start + firstLine.upStartVector * firstLine._startArmSize(size, maxSize));
+
+    for (int i = 1; i < lines.length; i++) {
+      final line = lines[i];
+      final d1 = line.upStartVector * line._startArmSize(size, maxSize);
+      final d2 = line.upEndVector * line._endArmSize(size, maxSize);
+
+      path.cubic(line.cpStart + d1, line.cpEnd + d2, line.end + d2);
+    }
+
+    final lastLine = lines.last;
+    path.line(lastLine.end + lastLine._downEndVector * lastLine._endArmSize(size, maxSize));
+
+    for (int i = lines.length - 2; i > -1; i--) {
+      final line = lines[i];
+      final d3 = line._downEndVector * line._endArmSize(size, maxSize);
+      final d4 = line._downStartVector * line._startArmSize(size, maxSize);
+
+      path.cubic(line.cpEnd + d3, line.cpStart + d4, line.start + d4);
+    }
+
+    path.close();
+
+    return path;
+  }
+
+  double _startArmSize(double size, double maxSize) => (size + (maxSize - size) * startSize) * 0.5;
+
+  double _endArmSize(double size, double maxSize) => (size + (maxSize - size) * endSize) * 0.5;
+
+  static Offset softCP(OffsetPoint current, {OffsetPoint previous, OffsetPoint next, bool reverse: false, double smoothing: 0.65}) {
+    assert(smoothing >= 0.0 && smoothing <= 1.0);
+
+    previous ??= current;
+    next ??= current;
+
+    final sharpness = 1.0 - smoothing;
+
+    final dist1 = previous.distanceTo(current);
+    final dist2 = current.distanceTo(next);
+    final dist = dist1 + dist2;
+    final dir1 = current.directionTo(next);
+    final dir2 = current.directionTo(previous);
+    final dir3 = reverse ? next.directionTo(previous) : previous.directionTo(next);
+
+    final velocity = (dist * 0.3 / (next.timestamp - previous.timestamp)).clamp(0.5, 3.0);
+    final ratio = (dist * velocity * smoothing).clamp(0.0, (reverse ? dist2 : dist1) * 0.5);
+
+    final dir = ((reverse ? dir2 : dir1) * sharpness) + (dir3 * smoothing) * ratio;
+    final x = current.dx + dir.dx;
+    final y = current.dy + dir.dy;
+
+    return Offset(x, y);
+  }
 }
 
 class CubicArc extends Offset {
@@ -297,7 +335,7 @@ class CubicPath {
 
   OffsetPoint get _lastPoint => _points.isNotEmpty ? _points[_points.length - 1] : null;
 
-  bool get isFilled => _points.isNotEmpty;
+  bool get isFilled => _lines.isNotEmpty;
 
   Path _temp;
 

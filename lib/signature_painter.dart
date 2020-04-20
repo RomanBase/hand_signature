@@ -33,7 +33,7 @@ class PathSignaturePainter extends CustomPainter {
     this.width: 1.0,
     this.maxWidth: 10.0,
     this.onSize,
-    this.type: SignatureDrawType.arc,
+    this.type: SignatureDrawType.shape,
   }) : assert(paths != null);
 
   @override
@@ -72,15 +72,15 @@ class PathSignaturePainter extends CustomPainter {
         final paint = fillPaint;
 
         paths.forEach((path) {
-          path.lines.forEach((line) {
-            canvas.drawPath(line.shape(width, maxWidth), paint);
-          });
+          if (path.isFilled) {
+            canvas.drawPath(CubicLine.toShape(path.lines, width, maxWidth), paint);
 
-          final first = path.lines.first;
-          final last = path.lines.last;
+            final first = path.lines.first;
+            final last = path.lines.last;
 
-          canvas.drawCircle(first.start, (width + (maxWidth - width) * first.startSize) * 0.5, paint);
-          canvas.drawCircle(last.end, (width + (maxWidth - width) * last.endSize) * 0.5, paint);
+            canvas.drawCircle(first.start, (width + (maxWidth - width) * first.startSize) * 0.5, paint);
+            canvas.drawCircle(last.end, (width + (maxWidth - width) * last.endSize) * 0.5, paint);
+          }
         });
 
         break;
