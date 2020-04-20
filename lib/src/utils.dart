@@ -109,71 +109,71 @@ class PathUtil {
     return Rect.fromLTRB(left, top, right, bottom);
   }
 
-  static List<Offset> translate(List<Offset> data, Offset location) {
-    final output = List<Offset>();
+  static List<T> translate<T extends Offset>(List<T> data, Offset location) {
+    final output = List<T>();
 
     data.forEach((point) => output.add(point.translate(location.dx, location.dy)));
 
     return output;
   }
 
-  static List<List<Offset>> translateOf(List<List<Offset>> data, Offset location) {
-    final output = List<List<Offset>>();
+  static List<List<T>> translateOf<T extends Offset>(List<List<T>> data, Offset location) {
+    final output = List<List<T>>();
 
     data.forEach((set) => output.add(translate(set, location)));
 
     return output;
   }
 
-  static List<Offset> scale(List<Offset> data, double ratio) {
-    final output = List<Offset>();
+  static List<T> scale<T extends Offset>(List<T> data, double ratio) {
+    final output = List<T>();
 
     data.forEach((point) => output.add(point.scale(ratio, ratio)));
 
     return output;
   }
 
-  static List<List<Offset>> scaleOf(List<List<Offset>> data, double ratio) {
-    final output = List<List<Offset>>();
+  static List<List<T>> scaleOf<T extends Offset>(List<List<T>> data, double ratio) {
+    final output = List<List<T>>();
 
     data.forEach((set) => output.add(scale(set, ratio)));
 
     return output;
   }
 
-  static List<Offset> normalize(List<Offset> data, {Rect bound, double border}) {
+  static List<T> normalize<T extends Offset>(List<T> data, {Rect bound, double border}) {
     bound ??= bounds(data);
     border ??= 0.0;
 
-    return scale(
-      translate(data, -bound.topLeft + Offset(border, border)),
+    return scale<T>(
+      translate<T>(data, -bound.topLeft + Offset(border, border)),
       1.0 / (max(bound.width, bound.height) + border * 2.0),
     );
   }
 
-  static List<List<Offset>> normalizeOf(List<List<Offset>> data, {Rect bound}) {
+  static List<List<T>> normalizeOf<T extends Offset>(List<List<T>> data, {Rect bound}) {
     bound ??= boundsOf(data);
 
     final ratio = 1.0 / max(bound.width, bound.height);
 
-    return scaleOf(
-      translateOf(data, -bound.topLeft),
+    return scaleOf<T>(
+      translateOf<T>(data, -bound.topLeft),
       ratio,
     );
   }
 
-  static List<Offset> fill(List<Offset> data, Rect rect, {Rect bound, double border}) {
+  static List<T> fill<T extends Offset>(List<T> data, Rect rect, {Rect bound, double border}) {
     bound ??= bounds(data);
     final srcRatio = bound.width / bound.height;
     final dstRatio = rect.width / rect.height;
 
-    return scale(
-      normalize(data, bound: bound, border: border),
+    return scale<T>(
+      normalize<T>(data, bound: bound, border: border),
       srcRatio >= dstRatio ? rect.width : rect.height,
     );
   }
 
-  static List<List<Offset>> fillOf(List<List<Offset>> data, Rect rect, {Rect bound, double border}) {
+  static List<List<T>> fillOf<T extends Offset>(List<List<T>> data, Rect rect, {Rect bound, double border}) {
     bound ??= boundsOf(data);
 
     final outputSize = rect.size;
@@ -189,9 +189,9 @@ class PathUtil {
     destinationSize = Size(destinationSize.width - border * 2.0, destinationSize.height - border * 2.0);
     final borderSize = Offset(rect.width - destinationSize.width, rect.height - destinationSize.height) * 0.5;
 
-    return translateOf(
-        scaleOf(
-          normalizeOf(data, bound: bound),
+    return translateOf<T>(
+        scaleOf<T>(
+          normalizeOf<T>(data, bound: bound),
           max(destinationSize.width, destinationSize.height),
         ),
         borderSize);

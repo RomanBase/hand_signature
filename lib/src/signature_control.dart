@@ -703,7 +703,7 @@ class HandSignatureControl extends ChangeNotifier {
 
     data.forEach((line) {
       buffer.write('<path d="M ${line[0].dx} ${line[0].dy}');
-      line.cast<CubicLine>().forEach((path) => buffer.write(' C ${path.cpStart.dx} ${path.cpStart.dy}, ${path.cpEnd.dx} ${path.cpEnd.dy}, ${path.end.dx} ${path.end.dy}'));
+      line.forEach((path) => buffer.write(' C ${path.cpStart.dx} ${path.cpStart.dy}, ${path.cpEnd.dx} ${path.cpEnd.dy}, ${path.end.dx} ${path.end.dy}'));
       buffer.writeln('" />');
     });
 
@@ -716,7 +716,7 @@ class HandSignatureControl extends ChangeNotifier {
   String _exportArcSvg({int width: 512, int height: 256, double border: 0.0, Color color, double size, double maxSize}) {
     final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
     final bounds = PathUtil.boundsOf(_offsets);
-    final data = PathUtil.fill(_arcs, rect, bound: bounds, border: maxSize + border).cast<CubicArc>();
+    final data = PathUtil.fill(_arcs, rect, bound: bounds, border: maxSize + border);
 
     if (data == null) {
       return null;
@@ -752,9 +752,7 @@ class HandSignatureControl extends ChangeNotifier {
     buffer.writeln('<svg width="$width" height="$height" xmlns="http://www.w3.org/2000/svg">');
     buffer.writeln('<g fill="${color.hexValue}">');
 
-    data.forEach((linesData) {
-      final lines = linesData.cast<CubicLine>();
-
+    data.forEach((lines) {
       if (lines.length == 1 && lines[0].isDot) {
         final dot = lines[0];
         buffer.writeln('<circle cx="${dot.start.dx}" cy="${dot.start.dy}" r="${dot.startRadius(size, maxSize)}">');
