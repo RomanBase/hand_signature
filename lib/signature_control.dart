@@ -92,9 +92,7 @@ class CubicLine extends Offset {
   double startSize;
   double endSize;
 
-  Path get path => Path()
-    ..moveTo(dx, dy)
-    ..cubicTo(cpStart.dx, cpStart.dy, cpEnd.dx, cpEnd.dy, end.dx, end.dy);
+  bool get isDot => _velocity == 0.0;
 
   CubicLine({
     @required this.start,
@@ -184,10 +182,14 @@ class CubicLine extends Offset {
     return value;
   }
 
-  List<CubicArc> arcPath(double size, double deltaSize, {double precision: 0.5}) {
+  Path toPath() => Path()
+    ..moveTo(dx, dy)
+    ..cubicTo(cpStart.dx, cpStart.dy, cpEnd.dx, cpEnd.dy, end.dx, end.dy);
+
+  List<CubicArc> toArc(double size, double deltaSize, {double precision: 0.5}) {
     final list = List<CubicArc>();
 
-    final steps = (_distance * precision).floor().clamp(1, 10);
+    final steps = (_distance * precision).floor().clamp(1, 30);
 
     Offset start = this.start;
     for (int i = 0; i < steps; i++) {
@@ -207,7 +209,7 @@ class CubicLine extends Offset {
     return list;
   }
 
-  Path shape(double size, double maxSize) {
+  Path toShape(double size, double maxSize) {
     final startArm = (size + (maxSize - size) * startSize) * 0.5;
     final endArm = (size + (maxSize - size) * endSize) * 0.5;
 
@@ -227,15 +229,19 @@ class CubicLine extends Offset {
       ..close();
   }
 
-  Offset cpsUp(double size, double maxSize) => upStartVector * _armSize(size, maxSize, startSize);
+  Offset cpsUp(double size, double maxSize) => upStartVector * startRadius(size, maxSize);
 
-  Offset cpeUp(double size, double maxSize) => upEndVector * _armSize(size, maxSize, endSize);
+  Offset cpeUp(double size, double maxSize) => upEndVector * endRadius(size, maxSize);
 
-  Offset cpsDown(double size, double maxSize) => _downStartVector * _armSize(size, maxSize, startSize);
+  Offset cpsDown(double size, double maxSize) => _downStartVector * startRadius(size, maxSize);
 
-  Offset cpeDown(double size, double maxSize) => _downEndVector * _armSize(size, maxSize, endSize);
+  Offset cpeDown(double size, double maxSize) => _downEndVector * endRadius(size, maxSize);
 
-  double _armSize(double size, double maxSize, double t) => (size + (maxSize - size) * t) * 0.5;
+  double startRadius(double size, double maxSize) => _lerpRadius(size, maxSize, startSize);
+
+  double endRadius(double size, double maxSize) => _lerpRadius(size, maxSize, endSize);
+
+  double _lerpRadius(double size, double maxSize, double t) => (size + (maxSize - size) * t) * 0.5;
 
   static Offset softCP(OffsetPoint current, {OffsetPoint previous, OffsetPoint next, bool reverse: false, double smoothing: 0.65}) {
     assert(smoothing >= 0.0 && smoothing <= 1.0);
@@ -325,6 +331,8 @@ class CubicPath {
   final threshold;
   final smoothRatio;
 
+  bool get isDot => lines.length == 1 && lines[0].isDot;
+
   CubicPath({
     this.threshold: 3.0,
     this.smoothRatio: 0.65,
@@ -355,7 +363,7 @@ class CubicPath {
     line.startSize = _currentSize;
     line.endSize = endSize;
 
-    _arcs.addAll(line.arcPath(_currentSize, endSize - _currentSize));
+    _arcs.addAll(line.toArc(_currentSize, endSize - _currentSize));
 
     _currentSize = endSize;
     _currentVelocity = combinedVelocity;
@@ -363,9 +371,10 @@ class CubicPath {
 
   void _addDot(CubicLine line) {
     final size = 0.25 + _lineSize(_currentVelocity, maxVelocity) * 0.5;
+    line.startSize = size;
 
     _lines.add(line);
-    _arcs.addAll(line.arcPath(size, 0.0));
+    _arcs.addAll(line.toArc(size, 0.0));
   }
 
   double _lineSize(double velocity, double max) {
@@ -454,7 +463,7 @@ class CubicPath {
           start: _points[0],
           cpStart: _points[0],
           cpEnd: _points[0],
-          end: _points[0].translate(0.01, 0.0),
+          end: _points[0],
         ));
       } else {
         _addLine(CubicLine(
@@ -742,39 +751,47 @@ class HandSignatureControl extends ChangeNotifier {
     data.forEach((linesData) {
       final lines = linesData.cast<CubicLine>();
 
-      final firstLine = lines.first;
-      final start = firstLine.start + firstLine.cpsUp(size, maxSize);
-      buffer.write('<path d="M ${start.dx} ${start.dy}');
+      if (lines.length == 1 && lines[0].isDot) {
+        final dot = lines[0];
+        buffer.writeln('<circle cx="${dot.start.dx}" cy="${dot.start.dy}" r="${dot.startRadius(size, maxSize)}">');
+      } else {
+        final firstLine = lines.first;
+        final start = firstLine.start + firstLine.cpsUp(size, maxSize);
+        buffer.write('<path d="M ${start.dx} ${start.dy}');
 
-      for (int i = 1; i < lines.length; i++) {
-        final line = lines[i];
-        final d1 = line.cpsUp(size, maxSize);
-        final d2 = line.cpeUp(size, maxSize);
+        for (int i = 0; i < lines.length; i++) {
+          final line = lines[i];
+          final d1 = line.cpsUp(size, maxSize);
+          final d2 = line.cpeUp(size, maxSize);
 
-        final cpStart = line.cpStart + d1;
-        final cpEnd = line.cpEnd + d2;
-        final end = line.end + d2;
+          final cpStart = line.cpStart + d1;
+          final cpEnd = line.cpEnd + d2;
+          final end = line.end + d2;
 
-        buffer.write(' C ${cpStart.dx} ${cpStart.dy} ${cpEnd.dx} ${cpEnd.dy} ${end.dx} ${end.dy}');
+          buffer.write(' C ${cpStart.dx} ${cpStart.dy} ${cpEnd.dx} ${cpEnd.dy} ${end.dx} ${end.dy}');
+        }
+
+        final lastLine = lines.last;
+        final half = lastLine.end + lastLine.cpeDown(size, maxSize);
+        buffer.write(' L ${half.dx} ${half.dy}');
+
+        for (int i = lines.length - 1; i > -1; i--) {
+          final line = lines[i];
+          final d3 = line.cpeDown(size, maxSize);
+          final d4 = line.cpsDown(size, maxSize);
+
+          final cpEnd = line.cpEnd + d3;
+          final cpStart = line.cpStart + d4;
+          final start = line.start + d4;
+
+          buffer.write(' C ${cpEnd.dx} ${cpEnd.dy} ${cpStart.dx} ${cpStart.dy} ${start.dx} ${start.dy}');
+        }
+
+        buffer.writeln(' z" />');
+
+        buffer.writeln('<circle cx="${firstLine.start.dx}" cy="${firstLine.start.dy}" r="${firstLine.startRadius(size, maxSize)}">');
+        buffer.writeln('<circle cx="${lastLine.end.dx}" cy="${lastLine.end.dy}" r="${lastLine.endRadius(size, maxSize)}">');
       }
-
-      final lastLine = lines.last;
-      final half = lastLine.end + lastLine.cpeDown(size, maxSize);
-      buffer.write(' L ${half.dx} ${half.dy}');
-
-      for (int i = lines.length - 2; i > -1; i--) {
-        final line = lines[i];
-        final d3 = line.cpeDown(size, maxSize);
-        final d4 = line.cpsDown(size, maxSize);
-
-        final cpEnd = line.cpEnd + d3;
-        final cpStart = line.cpStart + d4;
-        final start = line.start + d4;
-
-        buffer.write(' C ${cpEnd.dx} ${cpEnd.dy} ${cpStart.dx} ${cpStart.dy} ${start.dx} ${start.dy}');
-      }
-
-      buffer.writeln(' z" />');
     });
 
     buffer.writeln('<\/g>');

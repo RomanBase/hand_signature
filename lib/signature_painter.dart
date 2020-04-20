@@ -55,8 +55,9 @@ class PathSignaturePainter extends CustomPainter {
         final paint = strokePaint;
 
         paths.forEach((path) {
+          //TODO: path.lines to single path
           path.lines.forEach((line) {
-            canvas.drawPath(line.path, paint);
+            canvas.drawPath(line.toPath(), paint);
           });
         });
         break;
@@ -75,13 +76,17 @@ class PathSignaturePainter extends CustomPainter {
 
         paths.forEach((path) {
           if (path.isFilled) {
-            canvas.drawPath(PathUtil.toShape(path.lines, width, maxWidth), paint);
+            if (path.isDot) {
+              canvas.drawCircle(path.lines[0], path.lines[0].startRadius(width, maxWidth), paint);
+            } else {
+              canvas.drawPath(PathUtil.toShape(path.lines, width, maxWidth), paint);
 
-            final first = path.lines.first;
-            final last = path.lines.last;
+              final first = path.lines.first;
+              final last = path.lines.last;
 
-            canvas.drawCircle(first.start, (width + (maxWidth - width) * first.startSize) * 0.5, paint);
-            canvas.drawCircle(last.end, (width + (maxWidth - width) * last.endSize) * 0.5, paint);
+              canvas.drawCircle(first.start, first.startRadius(width, maxWidth), paint);
+              canvas.drawCircle(last.end, last.endRadius(width, maxWidth), paint);
+            }
           }
         });
 
@@ -115,10 +120,15 @@ class DrawableSignaturePainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round
       ..strokeWidth = drawable.style?.stroke?.strokeWidth ?? 1.0;
 
-    _draw(drawable, canvas, paint);
+    _draw(
+      drawable,
+      canvas,
+      Rect.fromPoints(Offset.zero, Offset(size.width, size.height)),
+      paint,
+    );
   }
 
-  void _draw(DrawableParent root, Canvas canvas, Paint paint) {
+  void _draw(DrawableParent root, Canvas canvas, Rect bounds, Paint paint) {
     if (root.children != null) {
       root.children.forEach((drawable) {
         if (drawable is DrawableShape) {
@@ -139,21 +149,19 @@ class DrawableSignaturePainter extends CustomPainter {
             }
           }
 
-          if(fill != null){
-            if(fill.color != null){
+          if (fill != null) {
+            if (fill.color != null) {
               paint.color = fill.color;
             }
           }
 
           canvas.drawPath(drawable.path, paint);
         } else if (drawable is DrawableParent) {
-          _draw(drawable, canvas, paint);
+          _draw(drawable, canvas, bounds, paint);
         }
       });
     }
   }
-
-  PaintingStyle _getPaintingStyle(DrawableStyle style) => style.stroke?.style ?? style.fill?.style ?? PaintingStyle.fill;
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) {

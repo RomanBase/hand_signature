@@ -282,8 +282,21 @@ class PathUtil {
     }
   }
 
-  //TODO: dot support
   static Path toShape(List<CubicLine> lines, double size, double maxSize) {
+    assert(lines.length > 0);
+
+    if (lines.length == 1) {
+      final line = lines[0];
+      if (line.isDot) {
+        //TODO: return null or create circle
+        return Path()
+          ..start(line.start)
+          ..line(line.end);
+      }
+
+      return line.toShape(size, maxSize);
+    }
+
     final path = Path();
 
     final firstLine = lines.first;
