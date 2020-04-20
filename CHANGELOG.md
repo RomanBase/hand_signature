@@ -1,4 +1,4 @@
-## [0.6.0] - Shape, Arc, Line
+## [0.6.1] - Shape, Arc, Line
 Draw line as single shape (huge performance update).
 Selection of 3 draw styles (shape, arc, line). Arc is still nicest, but has performance issues..
 **SignatureDrawType.shape** is now default draw and export style.

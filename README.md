@@ -29,14 +29,15 @@ With **HandSignatureControl** and **HandSignaturePainterView** is possible to tw
     );
 ```
 
-**HandSignatureControl** sets up 'math' to control input touch and handle control points of signature curve.\
-- threshold: (LP) controls minimal distance between two points - higher distance creates smoother curve, but less precise. Higher distance also creates input draw lag, because last two points of 'open' curve is not drawn.
-- smoothRatio: (0 - 1) controls how smooth curve will be - higher ratio creates smoother curve, but less precise. In most cases best results are with 0.5 - 0.75 ratio.
-- velocityRange: (LP/milliseconds) controls curve size based on duration between two points. With higher velocityRange user must swing faster to draw thinner line.
+**HandSignatureControl** sets up 'math' to control input touches and handles control points of signature curve.
+- threshold: (LP) controls minimal distance between two points - higher distance creates smoother curve, but less precise. Higher distance also creates bigger input draw lag.
+- smoothRatio: (0 - 1) controls how smooth curve will be - higher ratio creates smoother curve, but less precise. In most of cases are best results with values between 0.5 - 0.75.
+- velocityRange: (LP per millisecond) controls curve size based on distance and duration between two points. Thin line - fast move, thick line - slow move. With higher velocityRange user must swing faster to draw thinner line.
+- reverseVelocity: swaps velocity based stroke width. Thin line - slow move, thick line - fast move. Simply swaps min/max size. 
 
 **HandSignaturePainterView** sets up visual style of signature curve.\
-- control: process input and handles math and stores raw data.
-- color: line color.
+- control: processes input, handles math and stores raw data.
+- color: just color of line.
 - width: minimal width of line. Width at maximum swing speed (clamped by velocityRange).
 - maxWidth: maximum width of line. Width at slowest swing speed.
 - type: draw type of curve. Default and main draw type is **shape** - not so nice as **arc**, but has better performance. And **line** is simple path with uniform stroke width. 
@@ -44,24 +45,36 @@ With **HandSignatureControl** and **HandSignaturePainterView** is possible to tw
 ---
 
 **Export**\
-Some properties can be modified during export, like canvas size, stroke min/max width and color.
-There are more ways and more formats how to export signature. Most used are **svg** and **png** formats.
+Properties, like canvas size, stroke min/max width and color can be modified during export.\
+There are more ways and more formats how to export signature, most used ones are **svg** and **png** formats.
 ```dart
     final control = HandSignatureControl();
 
     final svg = control.toSvg();
     final png = control.toImage();
 ```
+Of course draw type is also supported during export. SignatureDrawType **shape** generates reasonably small file and is read well by all programs. On the other side **arc** generates really big file and some programs can have hard times handling so much objects.\
+Export to image supports **ImageByteFormat** and provides png or raw rgba data.\
 
 **Parsing**\
-Resulting **svg** is possible to display in classic [flutter_svg](https://pub.dev/packages/flutter_svg) widget.\
+Exported **svg** is possible to display in classic [flutter_svg](https://pub.dev/packages/flutter_svg) widget.\
 Or use build in **HandSignatureView** for greater control.
 ```dart
     final widget = HandSignatureView.svg(
       data: svgString,
       strokeWidth: (width) => width * 0.35,
+      padding: EdgeInsets.all(16.0),
+      placeholder: Container(
+        color: Colors.red,
+        child: Center(
+          child: Text('not signed yet'),
+        ),
+      ),
     );
 ```
+Signature is automatically centered and fills given area.\
+Currently stroke width can be controlled only for **line** and **arc** exports.\
+**HandSignatureView** handles most of svg files, but is optimized for drawing signatures created with this library and don't provide all features like [flutter_svg](https://pub.dev/packages/flutter_svg). 
 
 ---
 
