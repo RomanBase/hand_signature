@@ -115,10 +115,8 @@ class DrawableSignaturePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color ?? drawable.style?.stroke?.color ?? Colors.black
-      ..style = drawable.style.fill == null ? PaintingStyle.stroke : PaintingStyle.fill
       ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = drawable.style?.stroke?.strokeWidth ?? 1.0;
+      ..strokeJoin = StrokeJoin.round;
 
     _draw(
       drawable,
@@ -135,7 +133,14 @@ class DrawableSignaturePainter extends CustomPainter {
           final stroke = drawable.style?.stroke;
           final fill = drawable.style?.fill;
 
-          if (stroke != null) {
+          if (fill != null && !DrawablePaint.isEmpty(fill)) {
+            paint.style = PaintingStyle.fill;
+            if (fill.color != null) {
+              paint.color = fill.color;
+            }
+          } else if (stroke != null && !DrawablePaint.isEmpty(stroke)) {
+            paint.style = PaintingStyle.stroke;
+
             if (stroke.color != null) {
               paint.color = stroke.color;
             }
@@ -146,12 +151,6 @@ class DrawableSignaturePainter extends CustomPainter {
               } else {
                 paint.strokeWidth = stroke.strokeWidth;
               }
-            }
-          }
-
-          if (fill != null) {
-            if (fill.color != null) {
-              paint.color = fill.color;
             }
           }
 
