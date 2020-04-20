@@ -117,7 +117,7 @@ class PathUtil {
     return output;
   }
 
-  static List<List<T>> translateOf<T extends Offset>(List<List<T>> data, Offset location) {
+  static List<List<T>> translateData<T extends Offset>(List<List<T>> data, Offset location) {
     final output = List<List<T>>();
 
     data.forEach((set) => output.add(translate(set, location)));
@@ -133,7 +133,7 @@ class PathUtil {
     return output;
   }
 
-  static List<List<T>> scaleOf<T extends Offset>(List<List<T>> data, double ratio) {
+  static List<List<T>> scaleData<T extends Offset>(List<List<T>> data, double ratio) {
     final output = List<List<T>>();
 
     data.forEach((set) => output.add(scale(set, ratio)));
@@ -151,13 +151,13 @@ class PathUtil {
     );
   }
 
-  static List<List<T>> normalizeOf<T extends Offset>(List<List<T>> data, {Rect bound}) {
+  static List<List<T>> normalizeData<T extends Offset>(List<List<T>> data, {Rect bound}) {
     bound ??= boundsOf(data);
 
     final ratio = 1.0 / max(bound.width, bound.height);
 
-    return scaleOf<T>(
-      translateOf<T>(data, -bound.topLeft),
+    return scaleData<T>(
+      translateData<T>(data, -bound.topLeft),
       ratio,
     );
   }
@@ -173,7 +173,7 @@ class PathUtil {
     );
   }
 
-  static List<List<T>> fillOf<T extends Offset>(List<List<T>> data, Rect rect, {Rect bound, double border}) {
+  static List<List<T>> fillData<T extends Offset>(List<List<T>> data, Rect rect, {Rect bound, double border}) {
     bound ??= boundsOf(data);
 
     final outputSize = rect.size;
@@ -189,15 +189,15 @@ class PathUtil {
     destinationSize = Size(destinationSize.width - border * 2.0, destinationSize.height - border * 2.0);
     final borderSize = Offset(rect.width - destinationSize.width, rect.height - destinationSize.height) * 0.5;
 
-    return translateOf<T>(
-        scaleOf<T>(
-          normalizeOf<T>(data, bound: bound),
+    return translateData<T>(
+        scaleData<T>(
+          normalizeData<T>(data, bound: bound),
           max(destinationSize.width, destinationSize.height),
         ),
         borderSize);
   }
 
-  static Path pointsPath(List<Offset> points) {
+  static Path toPath(List<Offset> points) {
     final path = Path();
 
     if (points.length > 0) {
@@ -208,10 +208,10 @@ class PathUtil {
     return path;
   }
 
-  static List<Path> pointsPathOf(List<List<Offset>> data) {
+  static List<Path> toPaths(List<List<Offset>> data) {
     final paths = List<Path>();
 
-    data.forEach((line) => paths.add(pointsPath(line)));
+    data.forEach((line) => paths.add(toPath(line)));
 
     return paths;
   }
@@ -282,13 +282,13 @@ class PathUtil {
     }
   }
 
-  static Path toShape(List<CubicLine> lines, double size, double maxSize) {
+  static Path toShapePath(List<CubicLine> lines, double size, double maxSize) {
     assert(lines.length > 0);
 
     if (lines.length == 1) {
       final line = lines[0];
       if (line.isDot) {
-        //TODO: return null or create circle
+        //TODO: return null or create circle ?
         return Path()
           ..start(line.start)
           ..line(line.end);

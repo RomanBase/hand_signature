@@ -96,7 +96,7 @@ class HandSignatureView extends StatelessWidget {
         fit: BoxFit.contain,
         alignment: Alignment.center,
         child: SizedBox.fromSize(
-          size: PathUtil.pathBounds(PathUtil.parseDrawable(data)).size,
+          size: PathUtil.pathBounds(PathUtil.parseDrawable(data)).size, //TODO: use bounds from DrawableShape ?
           child: CustomPaint(
             painter: DrawableSignaturePainter(
               drawable: data,

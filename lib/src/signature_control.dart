@@ -694,7 +694,7 @@ class HandSignatureControl extends ChangeNotifier {
   String _exportPathSvg({int width: 512, int height: 256, double border: 0.0, Color color, double size}) {
     final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
     final bounds = PathUtil.boundsOf(_offsets);
-    final data = PathUtil.fillOf(_cubicLines, rect, bound: bounds, border: size + border);
+    final data = PathUtil.fillData(_cubicLines, rect, bound: bounds, border: size + border);
 
     final buffer = StringBuffer();
     buffer.writeln('<?xml version="1.0" encoding="UTF-8" standalone="no"?>');
@@ -741,7 +741,7 @@ class HandSignatureControl extends ChangeNotifier {
   String _exportShapeSvg({int width: 512, int height: 256, double border: 0.0, Color color, double size, double maxSize}) {
     final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
     final bounds = PathUtil.boundsOf(_offsets);
-    final data = PathUtil.fillOf(_cubicLines, rect, bound: bounds, border: maxSize + border);
+    final data = PathUtil.fillData(_cubicLines, rect, bound: bounds, border: maxSize + border);
 
     if (data == null) {
       return null;
