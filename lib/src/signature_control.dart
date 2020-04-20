@@ -628,7 +628,7 @@ class HandSignatureControl extends ChangeNotifier {
     notifyListeners();
   }
 
-  //TODO: currently works only when aspect ratio stays same..
+  //TODO: Only landscape to landscape mode works correctly now. Add support for orientation switching.
   bool notifyDimension(Size size) {
     if (_areaSize == size) {
       return false;
@@ -650,7 +650,7 @@ class HandSignatureControl extends ChangeNotifier {
 
     final ratioX = size.width / _areaSize.width;
     final ratioY = size.height / _areaSize.height;
-    final scale = math.min(ratioX, ratioY);
+    final scale = ratioY;
 
     _areaSize = size;
 
@@ -658,6 +658,7 @@ class HandSignatureControl extends ChangeNotifier {
       path.setScale(scale);
     });
 
+    //TODO: Notify is called during rebuild, so notify must be postponed one frame - will be solved by widget/state
     Future.delayed(Duration(), () => notifyListeners());
 
     return true;
