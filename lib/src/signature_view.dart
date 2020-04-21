@@ -84,19 +84,16 @@ class HandSignatureView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (data == null) {
-      return placeholder ??
-          Container(
-            color: Theme.of(context).backgroundColor,
-          );
+      return placeholder ?? Container(color: Colors.transparent);
     }
 
     return Padding(
-      padding: padding ?? EdgeInsets.all(16.0),
+      padding: padding ?? EdgeInsets.all(8.0),
       child: FittedBox(
         fit: BoxFit.contain,
         alignment: Alignment.center,
         child: SizedBox.fromSize(
-          size: PathUtil.pathBounds(PathUtil.parseDrawable(data)).size, //TODO: use bounds from DrawableShape ?
+          size: PathUtil.getDrawableSize(data),
           child: CustomPaint(
             painter: DrawableSignaturePainter(
               drawable: data,

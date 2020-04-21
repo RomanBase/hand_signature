@@ -56,10 +56,7 @@ class PathSignaturePainter extends CustomPainter {
         final paint = strokePaint;
 
         paths.forEach((path) {
-          //TODO: path.lines to single path
-          path.lines.forEach((line) {
-            canvas.drawPath(line.toPath(), paint);
-          });
+          canvas.drawPath(PathUtil.toLinePath(path.lines), paint);
         });
         break;
       case SignatureDrawType.arc:
@@ -114,20 +111,17 @@ class DrawableSignaturePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color ?? drawable.style?.stroke?.color ?? Colors.black
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
     _draw(
       drawable,
       canvas,
-      Rect.fromPoints(Offset.zero, Offset(size.width, size.height)),
-      paint,
+      Paint()
+        ..color = color ?? Colors.black
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
     );
   }
 
-  void _draw(DrawableParent root, Canvas canvas, Rect bounds, Paint paint) {
+  void _draw(DrawableParent root, Canvas canvas, Paint paint) {
     if (root.children != null) {
       root.children.forEach((drawable) {
         if (drawable is DrawableShape) {
@@ -136,13 +130,13 @@ class DrawableSignaturePainter extends CustomPainter {
 
           if (fill != null && !DrawablePaint.isEmpty(fill)) {
             paint.style = PaintingStyle.fill;
-            if (fill.color != null) {
+            if (color == null && fill.color != null) {
               paint.color = fill.color;
             }
           } else if (stroke != null && !DrawablePaint.isEmpty(stroke)) {
             paint.style = PaintingStyle.stroke;
 
-            if (stroke.color != null) {
+            if (color == null && stroke.color != null) {
               paint.color = stroke.color;
             }
 
@@ -157,7 +151,7 @@ class DrawableSignaturePainter extends CustomPainter {
 
           canvas.drawPath(drawable.path, paint);
         } else if (drawable is DrawableParent) {
-          _draw(drawable, canvas, bounds, paint);
+          _draw(drawable, canvas, paint);
         }
       });
     }

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:hand_signature/signature.dart';
 
@@ -10,6 +12,8 @@ HandSignatureControl control = new HandSignatureControl(
 );
 
 ValueNotifier<String> svg = ValueNotifier<String>(null);
+
+ValueNotifier<ByteData> rawImage = ValueNotifier<ByteData>(null);
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
@@ -61,15 +65,19 @@ class MyApp extends StatelessWidget {
                         child: Text('clear'),
                       ),
                       RaisedButton(
-                        onPressed: () {
-                          final data = control.toSvg(
+                        onPressed: () async {
+                          svg.value = control.toSvg(
                             color: Colors.blueGrey,
                             size: 2.0,
                             maxSize: 15.0,
+                            type: SignatureDrawType.arc,
                           );
-                          svg.value = data;
+
+                          rawImage.value = await control.toImage(
+                            color: Colors.blueAccent,
+                          );
                         },
-                        child: Text('svg'),
+                        child: Text('export'),
                       ),
                     ],
                   ),
@@ -80,25 +88,12 @@ class MyApp extends StatelessWidget {
               ),
               Align(
                 alignment: Alignment.bottomRight,
-                child: SizedBox(
-                  width: 192.0,
-                  height: 96.0,
-                  child: ValueListenableBuilder<String>(
-                    valueListenable: svg,
-                    builder: (context, data, child) {
-                      return HandSignatureView.svg(
-                        data: data,
-                        strokeWidth: (width) => width * 0.5,
-                        padding: EdgeInsets.all(16.0),
-                        placeholder: Container(
-                          color: Colors.red,
-                          child: Center(
-                            child: Text('not signed yet'),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    _buildImageView(),
+                    _buildSvgView(),
+                  ],
                 ),
               ),
             ],
@@ -107,4 +102,55 @@ class MyApp extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildImageView() => Container(
+        width: 192.0,
+        height: 96.0,
+        decoration: BoxDecoration(
+          border: Border.all(),
+          color: Colors.white30,
+        ),
+        child: ValueListenableBuilder<ByteData>(
+          valueListenable: rawImage,
+          builder: (context, data, child) {
+            if (data == null) {
+              return Container(
+                color: Colors.red,
+                child: Center(
+                  child: Text('not signed yet (png)'),
+                ),
+              );
+            } else {
+              return Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Image.memory(data.buffer.asUint8List()),
+              );
+            }
+          },
+        ),
+      );
+
+  Widget _buildSvgView() => Container(
+        width: 192.0,
+        height: 96.0,
+        decoration: BoxDecoration(
+          border: Border.all(),
+          color: Colors.white30,
+        ),
+        child: ValueListenableBuilder<String>(
+          valueListenable: svg,
+          builder: (context, data, child) {
+            return HandSignatureView.svg(
+              data: data,
+              padding: EdgeInsets.all(8.0),
+              placeholder: Container(
+                color: Colors.red,
+                child: Center(
+                  child: Text('not signed yet (svg)'),
+                ),
+              ),
+            );
+          },
+        ),
+      );
 }

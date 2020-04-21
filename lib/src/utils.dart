@@ -164,17 +164,32 @@ class PathUtil {
 
   static List<T> fill<T extends Offset>(List<T> data, Rect rect, {Rect bound, double border}) {
     bound ??= bounds(data);
-    final srcRatio = bound.width / bound.height;
-    final dstRatio = rect.width / rect.height;
+    border ??= 4.0;
 
-    return scale<T>(
-      normalize<T>(data, bound: bound, border: border),
-      srcRatio >= dstRatio ? rect.width : rect.height,
-    );
+    final outputSize = rect.size;
+    final sourceSize = bound;
+    Size destinationSize;
+
+    if (outputSize.width / outputSize.height > sourceSize.width / sourceSize.height) {
+      destinationSize = Size(sourceSize.width * outputSize.height / sourceSize.height, outputSize.height);
+    } else {
+      destinationSize = Size(outputSize.width, sourceSize.height * outputSize.width / sourceSize.width);
+    }
+
+    destinationSize = Size(destinationSize.width - border * 2.0, destinationSize.height - border * 2.0);
+    final borderSize = Offset(rect.width - destinationSize.width, rect.height - destinationSize.height) * 0.5;
+
+    return translate<T>(
+        scale<T>(
+          normalize<T>(data, bound: bound),
+          max(destinationSize.width, destinationSize.height),
+        ),
+        borderSize);
   }
 
   static List<List<T>> fillData<T extends Offset>(List<List<T>> data, Rect rect, {Rect bound, double border}) {
     bound ??= boundsOf(data);
+    border ??= 4.0;
 
     final outputSize = rect.size;
     final sourceSize = bound;
@@ -282,6 +297,8 @@ class PathUtil {
     }
   }
 
+  static Size getDrawableSize(DrawableRoot root) => root.viewport.size;
+
   static Path toShapePath(List<CubicLine> lines, double size, double maxSize) {
     assert(lines.length > 0);
 
@@ -322,6 +339,16 @@ class PathUtil {
     }
 
     path.close();
+
+    return path;
+  }
+
+  static Path toLinePath(List<CubicLine> lines) {
+    assert(lines.length > 0);
+
+    final path = Path()..start(lines[0]);
+
+    lines.forEach((line) => path.line(line.end));
 
     return path;
   }

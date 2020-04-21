@@ -802,8 +802,8 @@ class HandSignatureControl extends ChangeNotifier {
     return buffer.toString();
   }
 
-  Picture toPicture({int width: 512, int height: 256, Color color, double size, double maxSize}) {
-    final data = PathUtil.fill(_arcs, Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble())).cast<CubicArc>();
+  Picture toPicture({int width: 512, int height: 256, Color color, double size, double maxSize, double border}) {
+    final data = PathUtil.fill(_arcs, Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble()), border: border);
     final path = CubicPath().._arcs.addAll(data);
 
     params ??= SignaturePaintParams(
@@ -838,13 +838,14 @@ class HandSignatureControl extends ChangeNotifier {
     return recorder.endRecording();
   }
 
-  Future<ByteData> toImage({int width: 512, int height: 256, Color color, double size, double maxSize, ImageByteFormat format: ImageByteFormat.png}) async {
+  Future<ByteData> toImage({int width: 512, int height: 256, Color color, double size, double maxSize, double border, ImageByteFormat format: ImageByteFormat.png}) async {
     final image = await toPicture(
       width: width,
       height: height,
       color: color,
       size: size,
       maxSize: maxSize,
+      border: border,
     ).toImage(width, height);
 
     return image.toByteData(format: format);
