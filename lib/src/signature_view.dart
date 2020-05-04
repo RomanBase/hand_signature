@@ -40,6 +40,7 @@ class HandSignaturePainterView extends StatelessWidget {
           control: control,
           color: color,
           width: width,
+          maxWidth: maxWidth,
           type: type,
           onSize: control.notifyDimension,
         ),

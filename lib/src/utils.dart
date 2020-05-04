@@ -348,7 +348,7 @@ class PathUtil {
 
     final path = Path()..start(lines[0]);
 
-    lines.forEach((line) => path.line(line.end));
+    lines.forEach((line) => path.cubic(line.cpStart, line.cpEnd, line.end));
 
     return path;
   }
