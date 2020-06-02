@@ -707,8 +707,8 @@ class HandSignatureControl extends ChangeNotifier {
       buffer.writeln('" />');
     });
 
-    buffer.writeln('<\/g>');
-    buffer.writeln('<\/svg>');
+    buffer.writeln('</g>');
+    buffer.writeln('</svg>');
 
     return buffer.toString();
   }
@@ -729,11 +729,11 @@ class HandSignatureControl extends ChangeNotifier {
 
     data.forEach((arc) {
       final strokeSize = size + (maxSize - size) * arc.size;
-      buffer.writeln('<path d="M ${arc.dx} ${arc.dy} A 0 0, ${CubicArc.rotation}, 0, 0, ${arc.location.dx} ${arc.location.dy}" stroke-width="$strokeSize" \/>');
+      buffer.writeln('<path d="M ${arc.dx} ${arc.dy} A 0 0, ${CubicArc.rotation}, 0, 0, ${arc.location.dx} ${arc.location.dy}" stroke-width="$strokeSize" />');
     });
 
-    buffer.writeln('<\/g>');
-    buffer.writeln('<\/svg>');
+    buffer.writeln('</g>');
+    buffer.writeln('</svg>');
 
     return buffer.toString();
   }
@@ -791,13 +791,13 @@ class HandSignatureControl extends ChangeNotifier {
 
         buffer.writeln(' z" />');
 
-        buffer.writeln('<circle cx="${firstLine.start.dx}" cy="${firstLine.start.dy}" r="${firstLine.startRadius(size, maxSize)}">');
-        buffer.writeln('<circle cx="${lastLine.end.dx}" cy="${lastLine.end.dy}" r="${lastLine.endRadius(size, maxSize)}">');
+        buffer.writeln('<circle cx="${firstLine.start.dx}" cy="${firstLine.start.dy}" r="${firstLine.startRadius(size, maxSize)}" />');
+        buffer.writeln('<circle cx="${lastLine.end.dx}" cy="${lastLine.end.dy}" r="${lastLine.endRadius(size, maxSize)}" />');
       }
     });
 
-    buffer.writeln('<\/g>');
-    buffer.writeln('<\/svg>');
+    buffer.writeln('</g>');
+    buffer.writeln('</svg>');
 
     return buffer.toString();
   }
