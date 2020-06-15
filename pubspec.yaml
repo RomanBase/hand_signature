@@ -1,7 +1,7 @@
 name: hand_signature
 description: The signature pad widget that allows to draw signature with finger.
 homepage: https://github.com/romanbase/hand_signature
-version: 0.6.1+3
+version: 0.6.1+4
 
 environment:
   sdk: ">=2.6.0 <3.0.0"

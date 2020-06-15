@@ -755,7 +755,7 @@ class HandSignatureControl extends ChangeNotifier {
     data.forEach((lines) {
       if (lines.length == 1 && lines[0].isDot) {
         final dot = lines[0];
-        buffer.writeln('<circle cx="${dot.start.dx}" cy="${dot.start.dy}" r="${dot.startRadius(size, maxSize)}">');
+        buffer.writeln('<circle cx="${dot.start.dx}" cy="${dot.start.dy}" r="${dot.startRadius(size, maxSize)}" />');
       } else {
         final firstLine = lines.first;
         final start = firstLine.start + firstLine.cpsUp(size, maxSize);
