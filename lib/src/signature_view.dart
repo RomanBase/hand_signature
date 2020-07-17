@@ -142,8 +142,12 @@ class _HandSignatureViewSvgState extends State<_HandSignatureViewSvg> {
     if (data == null) {
       drawable = null;
     } else {
-      final parser = SvgParser();
-      drawable = await parser.parse(data);
+      try {
+        final parser = SvgParser();
+        drawable = await parser.parse(data);
+      } catch (err) {
+        print(err.toString());
+      }
     }
 
     setState(() {});
