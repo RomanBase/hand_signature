@@ -622,6 +622,17 @@ class HandSignatureControl extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool stepBack(){
+    assert(!hasActivePath);
+
+    if(_paths.isNotEmpty){
+      _paths.removeLast();
+      return true;
+    }
+
+    return false;
+  }
+
   void clear() {
     _paths.clear();
 
@@ -648,7 +659,7 @@ class HandSignatureControl extends ChangeNotifier {
       return false;
     }
 
-    final ratioX = size.width / _areaSize.width;
+    //final ratioX = size.width / _areaSize.width;
     final ratioY = size.height / _areaSize.height;
     final scale = ratioY;
 
