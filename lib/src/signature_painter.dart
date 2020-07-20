@@ -4,20 +4,39 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../signature.dart';
 import 'utils.dart';
 
+/// Type of signature path.
+/// [line] - simple line with constant size.
+/// [arc] - nicest, but worst performance. Creates thousands of small arcs.
+/// [shape] - every part of line is created by closed path and filled. Looks good and also have great performance.
 enum SignatureDrawType {
   line,
   arc,
   shape,
 }
 
+/// [CustomPainter] of [CubicPath].
+/// Used during signature painting.
 class PathSignaturePainter extends CustomPainter {
+  /// Paths to paint.
   final List<CubicPath> paths;
+
+  /// Single color of paint.
   final Color color;
+
+  /// Minimal size of path.
   final double width;
+
+  /// Maximal size of path.
   final double maxWidth;
+
+  //TODO: remove this and move size changes to Widget side..
+  /// Callback when canvas size is changed.
   final bool Function(Size size) onSize;
+
+  /// Type of signature path.
   final SignatureDrawType type;
 
+  /// Returns [PaintingStyle.stroke] based paint.
   Paint get strokePaint => Paint()
     ..color = color
     ..style = PaintingStyle.stroke
@@ -25,10 +44,12 @@ class PathSignaturePainter extends CustomPainter {
     ..strokeJoin = StrokeJoin.round
     ..strokeWidth = width;
 
+  /// Returns [PaintingStyle.fill] based paint.
   Paint get fillPaint => Paint()
     ..color = color
     ..strokeWidth = 0.0;
 
+  /// [Path] painter.
   PathSignaturePainter({
     @required this.paths,
     this.color: Colors.black,
@@ -98,11 +119,19 @@ class PathSignaturePainter extends CustomPainter {
   }
 }
 
+/// [CustomPainter] of [Drawable].
+/// Used on parsed svg data.
 class DrawableSignaturePainter extends CustomPainter {
+  /// Root [Drawable].
   final DrawableParent drawable;
+
+  /// Path color. Overrides color of [Drawable].
   final Color color;
+
+  /// Path size modifier.
   final double Function(double width) strokeWidth;
 
+  /// [Drawable] painter.
   DrawableSignaturePainter({
     @required this.drawable,
     this.color,
@@ -121,6 +150,7 @@ class DrawableSignaturePainter extends CustomPainter {
     );
   }
 
+  /// Recursive function to draw all shapes as [Path].
   void _draw(DrawableParent root, Canvas canvas, Paint paint) {
     if (root.children != null) {
       root.children.forEach((drawable) {

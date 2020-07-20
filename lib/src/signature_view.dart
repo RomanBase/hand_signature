@@ -6,11 +6,21 @@ import 'package:flutter_svg/parser.dart';
 import '../signature.dart';
 import 'utils.dart';
 
+/// Wraps [HandSignaturePaint] to paint signature. And [RawGestureDetector] to send input to [HandSignatureControl].
 class HandSignaturePainterView extends StatelessWidget {
+  /// Controls path creation.
   final HandSignatureControl control;
+
+  /// Colors of path.
   final Color color;
+
+  /// Minimal size of path.
   final double width;
+
+  /// Maximal size of path.
   final double maxWidth;
+
+  /// Path type.
   final SignatureDrawType type;
 
   /// Callback when path drawing starts.
@@ -19,6 +29,7 @@ class HandSignaturePainterView extends StatelessWidget {
   /// Callback when path drawing ends.
   final VoidCallback onPointerUp;
 
+  /// Draws [Path] based on input and stores data in [control].
   HandSignaturePainterView({
     Key key,
     @required this.control,
@@ -63,13 +74,24 @@ class HandSignaturePainterView extends StatelessWidget {
   }
 }
 
+/// Wraps [DrawableSignaturePainter] to paint svg [Drawable].
 class HandSignatureView extends StatelessWidget {
+  /// Svg data to draw.
   final Drawable data;
+
+  /// Path color.
   final Color color;
+
+  /// Path size modifier.
   final double Function(double width) strokeWidth;
+
+  /// Canvas padding.
   final EdgeInsets padding;
+
+  /// Placeholder widget when no data provided.
   final Widget placeholder;
 
+  /// Draws [Path] based on [Drawable] data.
   const HandSignatureView({
     Key key,
     @required this.data,
@@ -79,6 +101,7 @@ class HandSignatureView extends StatelessWidget {
     this.placeholder,
   }) : super(key: key);
 
+  /// Draws [Path] based on [svg] data.
   static _HandSignatureViewSvg svg({
     Key key,
     @required String data,
@@ -122,6 +145,7 @@ class HandSignatureView extends StatelessWidget {
   }
 }
 
+/// Parses [svg] to [Drawable] and pains [DrawableSignaturePainter].
 class _HandSignatureViewSvg extends StatefulWidget {
   final String data;
   final Color color;
@@ -142,6 +166,7 @@ class _HandSignatureViewSvg extends StatefulWidget {
   _HandSignatureViewSvgState createState() => _HandSignatureViewSvgState();
 }
 
+/// State of [_HandSignatureViewSvg].
 class _HandSignatureViewSvgState extends State<_HandSignatureViewSvg> {
   DrawableParent drawable;
 
@@ -156,8 +181,12 @@ class _HandSignatureViewSvgState extends State<_HandSignatureViewSvg> {
     if (data == null) {
       drawable = null;
     } else {
-      final parser = SvgParser();
-      drawable = await parser.parse(data);
+      try {
+        final parser = SvgParser();
+        drawable = await parser.parse(data);
+      } catch (err) {
+        print(err.toString());
+      }
     }
 
     setState(() {});
@@ -188,6 +217,8 @@ class _HandSignatureViewSvgState extends State<_HandSignatureViewSvg> {
       );
 }
 
+/// Custom [PanGestureRecognizer] that handles just one input touch.
+/// Don't allow multi touch.
 class _SinglePanGestureRecognizer extends PanGestureRecognizer {
   _SinglePanGestureRecognizer({Object debugOwner}) : super(debugOwner: debugOwner);
 
