@@ -8,15 +8,27 @@ import 'package:flutter/material.dart';
 import '../signature.dart';
 import 'utils.dart';
 
+/// Paint settings.
 class SignaturePaintParams {
+  /// Color of line.
   final Color color;
+
+  /// Minimal width of line.
   final double width;
+
+  /// Maximal width of line.
   final double maxWidth;
 
+  /// Hex value of [color].
   String get hexColor => color.hexValue;
 
+  /// Opacity of [color].
   String get opacity => '${color.opacity}}';
 
+  /// Paint settings of line.
+  /// [color] - color of line.
+  /// [width] - minimal width of line.
+  /// [maxWidth] - maximal width of line.
   const SignaturePaintParams({
     this.color: Colors.black,
     this.width: 1.0,
@@ -24,9 +36,13 @@ class SignaturePaintParams {
   });
 }
 
+/// Extended [Offset] point with [timestamp].
 class OffsetPoint extends Offset {
+  /// Timestamp of this point. Used to determine velocity to other points.
   final int timestamp;
 
+  /// 2D point in canvas space.
+  /// [timestamp] of this [Offset]. Used to determine velocity to other points.
   const OffsetPoint({
     double dx,
     double dy,
@@ -39,6 +55,7 @@ class OffsetPoint extends Offset {
         timestamp: DateTime.now().millisecondsSinceEpoch,
       );
 
+  /// Returns velocity between this and [other] - previous point.
   double velocityFrom(OffsetPoint other) => timestamp != other.timestamp ? this.distanceTo(other) / (timestamp - other.timestamp) : 0.0;
 
   @override
@@ -68,32 +85,61 @@ class OffsetPoint extends Offset {
   int get hashCode => hashValues(super.hashCode, timestamp);
 }
 
+/// Line between two points. Curve of this line is controlled with other two points.
+/// Check https://cubic-bezier.com/ for more info about Bezier Curve.
 class CubicLine extends Offset {
+  /// Initial point of curve.
   final OffsetPoint start;
+
+  /// Control of [start] point.
   final Offset cpStart;
+
+  /// Control of [end] point
   final Offset cpEnd;
+
+  /// End point of curve.
   final OffsetPoint end;
 
   double _velocity;
   double _distance;
 
+  /// Cache of Up vector.
   Offset _upStartVector;
 
+  /// Up vector of [start] point.
   Offset get upStartVector => _upStartVector ?? (_upStartVector = start.directionTo(point(0.001)).rotate(-math.pi * 0.5));
 
+  /// Cache of Up vector.
   Offset _upEndVector;
 
+  /// Up vector of [end] point.
   Offset get upEndVector => _upEndVector ?? (_upEndVector = end.directionTo(point(0.999)).rotate(math.pi * 0.5));
 
+  /// Down vector.
   Offset get _downStartVector => upStartVector.rotate(math.pi);
 
+  /// Down vector.
   Offset get _downEndVector => upEndVector.rotate(math.pi);
 
+  /// Start ratio size of line.
   double startSize;
+
+  /// End ratio size of line.
   double endSize;
 
+  /// Checks if point is dot.
+  /// Returns 'true' if [start] and [end] is same -> [velocity] is zero.
   bool get isDot => _velocity == 0.0;
 
+  /// Based on Bezier Cubic curve.
+  /// [start] point of curve.
+  /// [end] point of curve.
+  /// [cpStart] - control point of [start] vector.
+  /// [cpEnd] - control point of [end] vector.
+  /// [startSize] - size ratio at begin of curve.
+  /// [endSize] - size ratio at end of curve.
+  /// [upStartVector] - pre-calculated Up vector fo start point.
+  /// [upEndVector] - pre-calculated Up vector of end point.
   CubicLine({
     @required this.start,
     @required this.cpStart,
@@ -134,8 +180,10 @@ class CubicLine extends Offset {
         endSize: endSize,
       );
 
-  /// 0 - fastest, raw accuracy
-  /// 1 - slowest, most accurate
+  /// Calculates length of Cubic curve with given [accuracy].
+  /// 0 - fastest, raw accuracy.
+  /// 1 - slowest, most accurate.
+  /// Returns length of curve.
   double length({double accuracy: 0.1}) {
     final steps = (accuracy * 100).toInt();
 
@@ -158,13 +206,18 @@ class CubicLine extends Offset {
     return length;
   }
 
+  /// Calculates point on curve at given [t].
+  /// [t] - 0 to 1.
+  /// Returns location on Curve at [t].
   Offset point(double t) {
     final rt = 1.0 - t;
     return (start * rt * rt * rt) + (cpStart * 3.0 * rt * rt * t) + (cpEnd * 3.0 * rt * t * t) + (end * t * t * t);
   }
 
+  /// Velocity along this line.
   double velocity({double accuracy: 0.0}) => start.timestamp != end.timestamp ? length(accuracy: accuracy) / (end.timestamp - start.timestamp) : 0.0;
 
+  /// Combines line velocity with [inVelocity] based on [velocityRatio].
   double combineVelocity(double inVelocity, {double velocityRatio: 0.65, double maxFallOff: 1.0}) {
     final value = (_velocity * velocityRatio) + (inVelocity * (1.0 - velocityRatio));
 
@@ -182,10 +235,12 @@ class CubicLine extends Offset {
     return value;
   }
 
+  /// Converts this line to Cubic [Path].
   Path toPath() => Path()
     ..moveTo(dx, dy)
     ..cubicTo(cpStart.dx, cpStart.dy, cpEnd.dx, cpEnd.dy, end.dx, end.dy);
 
+  /// Converts this line to [CubicArc].
   List<CubicArc> toArc(double size, double deltaSize, {double precision: 0.5}) {
     final list = List<CubicArc>();
 
@@ -209,6 +264,7 @@ class CubicLine extends Offset {
     return list;
   }
 
+  /// Converts this line to closed [Path].
   Path toShape(double size, double maxSize) {
     final startArm = (size + (maxSize - size) * startSize) * 0.5;
     final endArm = (size + (maxSize - size) * endSize) * 0.5;
@@ -229,20 +285,29 @@ class CubicLine extends Offset {
       ..close();
   }
 
+  /// Returns Up offset of start point.
   Offset cpsUp(double size, double maxSize) => upStartVector * startRadius(size, maxSize);
 
+  /// Returns Up offset of end point.
   Offset cpeUp(double size, double maxSize) => upEndVector * endRadius(size, maxSize);
 
+  /// Returns Down offset of start point.
   Offset cpsDown(double size, double maxSize) => _downStartVector * startRadius(size, maxSize);
 
+  /// Returns Down offset of end point.
   Offset cpeDown(double size, double maxSize) => _downEndVector * endRadius(size, maxSize);
 
+  /// Returns radius of start point.
   double startRadius(double size, double maxSize) => _lerpRadius(size, maxSize, startSize);
 
+  /// Returns radius of end point.
   double endRadius(double size, double maxSize) => _lerpRadius(size, maxSize, endSize);
 
+  /// Linear interpolation of size.
+  /// Returns radius of interpolated size.
   double _lerpRadius(double size, double maxSize, double t) => (size + (maxSize - size) * t) * 0.5;
 
+  /// Calculates [current] point based on [previous] and [next] control points.
   static Offset softCP(OffsetPoint current, {OffsetPoint previous, OffsetPoint next, bool reverse: false, double smoothing: 0.65}) {
     assert(smoothing >= 0.0 && smoothing <= 1.0);
 
@@ -269,18 +334,28 @@ class CubicLine extends Offset {
   }
 }
 
+/// Arc between two points.
 class CubicArc extends Offset {
-  static const rotation = math.pi * 2.0;
+  static const _pi2 = math.pi * 2.0;
 
+  /// End location of arc.
   final Offset location;
+
+  /// Line size.
   final double size;
 
+  /// Arc path.
   Path get path => Path()
     ..moveTo(dx, dy)
-    ..arcToPoint(location, rotation: rotation);
+    ..arcToPoint(location, rotation: _pi2);
 
+  /// Rectangle of start and end point.
   Rect get rect => Rect.fromPoints(this, location);
 
+  /// Arc line.
+  /// [start] point of arc.
+  /// [location] end point of arc.
+  /// [size] ratio of arc. typically 0 - 1.
   CubicArc({
     @required Offset start,
     @required this.location,
@@ -302,42 +377,72 @@ class CubicArc extends Offset {
       );
 }
 
+/// Combines sequence of points into one Line.
 class CubicPath {
+  /// Raw data.
   final _points = List<OffsetPoint>();
+
+  /// [CubicLine] representation of path.
   final _lines = List<CubicLine>();
+
+  /// [CubicArc] representation of path.
   final _arcs = List<CubicArc>();
 
+  /// Returns raw data of path.
   List<OffsetPoint> get points => _points;
 
+  /// Returns [CubicLine] representation of path.
   List<CubicLine> get lines => _lines;
 
+  /// Returns [CubicArc] representation of path.
   List<CubicArc> get arcs => _arcs;
 
+  /// First point of path.
   Offset get _origin => _points.isNotEmpty ? _points[0] : null;
 
+  /// Last point of path.
   OffsetPoint get _lastPoint => _points.isNotEmpty ? _points[_points.length - 1] : null;
 
+  /// Checks if path is valid.
   bool get isFilled => _lines.isNotEmpty;
 
+  /// Unfinished path.
   Path _temp;
 
+  /// Returns currently unfinished part of path.
   Path get tempPath => _temp;
 
+  /// Maximum possible velocity.
   double maxVelocity = 1.0;
 
+  /// Actual average velocity.
   double _currentVelocity = 0.0;
+
+  /// Actual size based on velocity.
   double _currentSize = 0.0;
 
+  /// Distance between two control points.
   final threshold;
+
+  /// Ratio of line smoothing.
+  /// Don't have impact to performance. Values between 0 - 1.
+  /// [0] - no smoothing, no flattening.
+  /// [1] - best smoothing, but flattened.
+  /// Best results are between: 0.5 - 0.85.
   final smoothRatio;
 
+  /// Checks if this Line is just dot.
   bool get isDot => lines.length == 1 && lines[0].isDot;
 
+  /// Line builder.
+  /// [threshold] - Distance between two control points.
+  /// [smoothRatio] - Ratio of line smoothing.
   CubicPath({
     this.threshold: 3.0,
     this.smoothRatio: 0.65,
   });
 
+  /// Adds line to path.
   void _addLine(CubicLine line) {
     if (_lines.length == 0) {
       if (_currentVelocity == 0.0) {
@@ -369,6 +474,7 @@ class CubicPath {
     _currentVelocity = combinedVelocity;
   }
 
+  /// Adds dot to path.
   void _addDot(CubicLine line) {
     final size = 0.25 + _lineSize(_currentVelocity, maxVelocity) * 0.5;
     line.startSize = size;
@@ -377,12 +483,15 @@ class CubicPath {
     _arcs.addAll(line.toArc(size, 0.0));
   }
 
+  /// Calculates line size based on [velocity].
   double _lineSize(double velocity, double max) {
     velocity /= max;
 
     return 1.0 - velocity.clamp(0.0, 1.0);
   }
 
+  /// Starts path at given [point].
+  /// Must be called as first, before [begin], [end].
   void begin(Offset point, {double velocity: 0.0}) {
     _points.add(OffsetPoint.from(point));
     _currentVelocity = velocity;
@@ -390,6 +499,7 @@ class CubicPath {
     _temp = _dot(point);
   }
 
+  /// Alters path with given [point].
   void add(Offset point) {
     assert(_origin != null);
 
@@ -446,6 +556,7 @@ class CubicPath {
     _temp = _line(end, next);
   }
 
+  /// Ends path at given [point].
   bool end({Offset point}) {
     if (point != null) {
       add(point);
@@ -489,6 +600,7 @@ class CubicPath {
     return true;
   }
 
+  /// Creates [Path] as dot at given [point].
   Path _dot(Offset point) => Path()
     ..moveTo(point.dx, point.dy)
     ..cubicTo(
@@ -500,6 +612,7 @@ class CubicPath {
       point.dy,
     );
 
+  /// Creates [Path] between [start] and [end] points, curve is controlled be [startCp] and [endCp] control points.
   Path _line(Offset start, Offset end, [Offset startCp, Offset endCp]) => Path()
     ..moveTo(start.dx, start.dy)
     ..cubicTo(
@@ -511,6 +624,7 @@ class CubicPath {
       end.dy,
     );
 
+  /// Sets scale of whole line.
   void setScale(double ratio) {
     if (!isFilled) {
       return;
@@ -525,6 +639,7 @@ class CubicPath {
     _lines.addAll(lineData.cast<CubicLine>());
   }
 
+  /// Clears all path data-.
   void clear() {
     _points.clear();
     _lines.clear();
@@ -532,11 +647,16 @@ class CubicPath {
   }
 }
 
+/// Controls signature drawing and line shape.
+/// Also handles export of finished signature.
 class HandSignatureControl extends ChangeNotifier {
+  /// List of active paths.
   final _paths = List<CubicPath>();
 
+  /// List of currently completed lines.
   List<CubicPath> get paths => _paths;
 
+  /// Lazy list of all control points - raw data.
   List<List<Offset>> get _offsets {
     final list = List<List<Offset>>();
 
@@ -545,6 +665,7 @@ class HandSignatureControl extends ChangeNotifier {
     return list;
   }
 
+  /// Lazy list of all Lines.
   List<List<CubicLine>> get _cubicLines {
     final list = List<List<CubicLine>>();
 
@@ -553,6 +674,7 @@ class HandSignatureControl extends ChangeNotifier {
     return list;
   }
 
+  /// Lazy list of all Arcs.
   List<CubicArc> get _arcs {
     final list = List<CubicArc>();
 
@@ -561,6 +683,7 @@ class HandSignatureControl extends ChangeNotifier {
     return list;
   }
 
+  /// Lazy list of all Lines.
   List<CubicLine> get lines {
     final list = List<CubicLine>();
 
@@ -569,26 +692,38 @@ class HandSignatureControl extends ChangeNotifier {
     return list;
   }
 
+  /// Currently unfinished path.
   CubicPath _activePath;
 
+  /// Checks if is there unfinished path.
   bool get hasActivePath => _activePath != null;
 
+  /// Checks if something is drawn.
   bool get isFilled => _paths.isNotEmpty;
 
+  /// Visual parameters of line painting.
   SignaturePaintParams params;
 
+  /// Canvas size.
   Size _areaSize = Size.zero;
 
+  /// Distance between two control points.
   final double threshold;
+
+  /// Smoothing ratio of path.
   final double smoothRatio;
+
+  /// Maximal velocity.
   final double velocityRange;
 
+  /// Controls input from [HandSignaturePainterView] and creates smooth signature path.
   HandSignatureControl({
     this.threshold: 3.0,
     this.smoothRatio: 0.65,
     this.velocityRange: 2.0,
   });
 
+  /// Starts new line at given [point].
   void startPath(Offset point) {
     assert(!hasActivePath);
 
@@ -602,6 +737,7 @@ class HandSignatureControl extends ChangeNotifier {
     _paths.add(_activePath);
   }
 
+  /// Adds [point[ to active path.
   void alterPath(Offset point) {
     assert(hasActivePath);
 
@@ -610,6 +746,7 @@ class HandSignatureControl extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Closes active path at given [point].
   void closePath({Offset point}) {
     assert(hasActivePath);
 
@@ -622,17 +759,21 @@ class HandSignatureControl extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool stepBack(){
+  /// Removes last line.
+  bool stepBack() {
     assert(!hasActivePath);
 
-    if(_paths.isNotEmpty){
+    if (_paths.isNotEmpty) {
       _paths.removeLast();
+      notifyListeners();
+
       return true;
     }
 
     return false;
   }
 
+  /// Clears all data.
   void clear() {
     _paths.clear();
 
@@ -640,6 +781,7 @@ class HandSignatureControl extends ChangeNotifier {
   }
 
   //TODO: Only landscape to landscape mode works correctly now. Add support for orientation switching.
+  /// Handles canvas size changes.
   bool notifyDimension(Size size) {
     if (_areaSize == size) {
       return false;
@@ -669,12 +811,14 @@ class HandSignatureControl extends ChangeNotifier {
       path.setScale(scale);
     });
 
-    //TODO: Notify is called during rebuild, so notify must be postponed one frame - will be solved by widget/state
+    //TODO: Called during rebuild, so notify must be postponed one frame - will be solved by widget/state
     Future.delayed(Duration(), () => notifyListeners());
 
     return true;
   }
 
+  /// Converts data to [svg] String.
+  /// [type] - data structure.
   String toSvg({SignatureDrawType type: SignatureDrawType.shape, int width: 512, int height: 256, double border: 0.0, Color color, double size, double maxSize}) {
     if (!isFilled) {
       return null;
@@ -702,6 +846,7 @@ class HandSignatureControl extends ChangeNotifier {
     return null;
   }
 
+  /// Exports [svg] as simple line.
   String _exportPathSvg({int width: 512, int height: 256, double border: 0.0, Color color, double size}) {
     final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
     final bounds = PathUtil.boundsOf(_offsets);
@@ -724,6 +869,7 @@ class HandSignatureControl extends ChangeNotifier {
     return buffer.toString();
   }
 
+  /// Exports [svg] as a lot of arcs.
   String _exportArcSvg({int width: 512, int height: 256, double border: 0.0, Color color, double size, double maxSize}) {
     final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
     final bounds = PathUtil.boundsOf(_offsets);
@@ -740,7 +886,7 @@ class HandSignatureControl extends ChangeNotifier {
 
     data.forEach((arc) {
       final strokeSize = size + (maxSize - size) * arc.size;
-      buffer.writeln('<path d="M ${arc.dx} ${arc.dy} A 0 0, ${CubicArc.rotation}, 0, 0, ${arc.location.dx} ${arc.location.dy}" stroke-width="$strokeSize" />');
+      buffer.writeln('<path d="M ${arc.dx} ${arc.dy} A 0 0, ${CubicArc._pi2}, 0, 0, ${arc.location.dx} ${arc.location.dy}" stroke-width="$strokeSize" />');
     });
 
     buffer.writeln('</g>');
@@ -749,6 +895,7 @@ class HandSignatureControl extends ChangeNotifier {
     return buffer.toString();
   }
 
+  /// Exports [svg] as shape - 4 paths per line. Path is closed and filled with given color.
   String _exportShapeSvg({int width: 512, int height: 256, double border: 0.0, Color color, double size, double maxSize}) {
     final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
     final bounds = PathUtil.boundsOf(_offsets);
@@ -813,6 +960,7 @@ class HandSignatureControl extends ChangeNotifier {
     return buffer.toString();
   }
 
+  /// Exports data to [Picture].
   Picture toPicture({int width: 512, int height: 256, Color color, double size, double maxSize, double border}) {
     final data = PathUtil.fill(_arcs, Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble()), border: border);
     final path = CubicPath().._arcs.addAll(data);
@@ -849,6 +997,7 @@ class HandSignatureControl extends ChangeNotifier {
     return recorder.endRecording();
   }
 
+  /// Exports data to raw image.
   Future<ByteData> toImage({int width: 512, int height: 256, Color color, double size, double maxSize, double border, ImageByteFormat format: ImageByteFormat.png}) async {
     final image = await toPicture(
       width: width,

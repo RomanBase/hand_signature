@@ -2,17 +2,34 @@ import 'package:flutter/material.dart';
 
 import '../signature.dart';
 
+/// Creates [CustomPaint] and rebuilds whenever signature data are changed.
+/// All arguments are passed to [PathSignaturePainter].
+///
+/// Check [HandSignaturePainterView] and [HandSignatureView].
 class HandSignaturePaint extends StatefulWidget {
+  /// Paths controller.
   final HandSignatureControl control;
+
+  /// Color of path.
   final Color color;
+
+  /// Minimal size of path.
   final double width;
+
+  /// Maximal size of path.
   final double maxWidth;
+
+  /// Path type.
   final SignatureDrawType type;
+
+  //TODO: remove this and move size changes to State..
+  /// Callback when canvas size is changed.
   final bool Function(Size size) onSize;
 
+  /// Draws path based on data from [control].
   const HandSignaturePaint({
     Key key,
-    this.control,
+    @required this.control,
     this.color: Colors.black,
     this.width: 1.0,
     this.maxWidth: 10.0,
@@ -24,6 +41,8 @@ class HandSignaturePaint extends StatefulWidget {
   _HandSignaturePaintState createState() => _HandSignaturePaintState();
 }
 
+/// State of [HandSignaturePaint].
+/// Subscribes to [HandSignatureControl] and rebuilds whenever signature data are changed.
 class _HandSignaturePaintState extends State<HandSignaturePaint> {
   @override
   void initState() {
