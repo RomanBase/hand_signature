@@ -8,16 +8,19 @@ HandSignatureControl control = HandSignatureControl(
 );
 
 ScrollController scrollController = ScrollController();
-FocusNode focusNode = FocusNode();
 
-class ScrollExample extends StatelessWidget {
+class ScrollTest extends StatefulWidget {
+  @override
+  _ScrollTestState createState() => _ScrollTestState();
+}
+
+class _ScrollTestState extends State<ScrollTest> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.orange,
       body: ListView(
         controller: scrollController,
-        //physics: NeverScrollableScrollPhysics(),
         children: <Widget>[
           Container(
             height: MediaQuery.of(context).size.height * 0.35,
@@ -29,7 +32,6 @@ class ScrollExample extends StatelessWidget {
               control: control,
               type: SignatureDrawType.shape,
               onPointerDown: () {
-                focusNode.requestFocus();
                 print('down');
               },
               onPointerUp: () {
