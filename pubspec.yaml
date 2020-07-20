@@ -10,10 +10,12 @@ dependencies:
   flutter:
     sdk: flutter
 
-  flutter_svg: ^0.18.0
+  flutter_svg: ^0.17.4
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+  pedantic: any
 
 flutter:
