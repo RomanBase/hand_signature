@@ -70,7 +70,7 @@ class MyApp extends StatelessWidget {
                             color: Colors.blueGrey,
                             size: 2.0,
                             maxSize: 15.0,
-                            type: SignatureDrawType.arc,
+                            type: SignatureDrawType.shape,
                           );
 
                           rawImage.value = await control.toImage(
