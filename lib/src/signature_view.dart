@@ -13,6 +13,12 @@ class HandSignaturePainterView extends StatelessWidget {
   final double maxWidth;
   final SignatureDrawType type;
 
+  /// Callback when path drawing starts.
+  final VoidCallback onPointerDown;
+
+  /// Callback when path drawing ends.
+  final VoidCallback onPointerUp;
+
   HandSignaturePainterView({
     Key key,
     @required this.control,
@@ -20,6 +26,8 @@ class HandSignaturePainterView extends StatelessWidget {
     this.width: 1.0,
     this.maxWidth: 10.0,
     this.type: SignatureDrawType.shape,
+    this.onPointerDown,
+    this.onPointerUp,
   }) : super(key: key);
 
   @override
@@ -30,9 +38,15 @@ class HandSignaturePainterView extends StatelessWidget {
           _SinglePanGestureRecognizer: GestureRecognizerFactoryWithHandlers<_SinglePanGestureRecognizer>(
             () => _SinglePanGestureRecognizer(debugOwner: this),
             (PanGestureRecognizer instance) {
-              instance.onStart = (args) => control.startPath(args.localPosition);
+              instance.onStart = (args) {
+                onPointerDown?.call();
+                control.startPath(args.localPosition);
+              };
               instance.onUpdate = (args) => control.alterPath(args.localPosition);
-              instance.onEnd = (args) => control.closePath();
+              instance.onEnd = (args) {
+                control.closePath();
+                onPointerUp?.call();
+              };
             },
           ),
         },
