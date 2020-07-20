@@ -41,23 +41,42 @@ class HandSignaturePainterView extends StatelessWidget {
     this.onPointerUp,
   }) : super(key: key);
 
+  void _startPath(_SinglePanGestureRecognizer instance, Offset point) {
+    instance?.isDown = true;
+
+    if (!control.hasActivePath) {
+      onPointerDown?.call();
+      control.startPath(point);
+    }
+  }
+
+  void _endPath(_SinglePanGestureRecognizer instance) {
+    if (control.hasActivePath) {
+      control.closePath();
+      onPointerUp?.call();
+    }
+
+    instance?.isDown = false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
       child: RawGestureDetector(
         gestures: <Type, GestureRecognizerFactory>{
+          TapGestureRecognizer: GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+            () => TapGestureRecognizer(debugOwner: this),
+            (instance) {
+              instance.onTapDown = (args) => _startPath(null, args.localPosition);
+              instance.onTapUp = (args) => _endPath(null);
+            },
+          ),
           _SinglePanGestureRecognizer: GestureRecognizerFactoryWithHandlers<_SinglePanGestureRecognizer>(
             () => _SinglePanGestureRecognizer(debugOwner: this),
-            (PanGestureRecognizer instance) {
-              instance.onStart = (args) {
-                onPointerDown?.call();
-                control.startPath(args.localPosition);
-              };
+            (instance) {
+              instance.onStart = (args) => _startPath(instance, args.localPosition);
               instance.onUpdate = (args) => control.alterPath(args.localPosition);
-              instance.onEnd = (args) {
-                control.closePath();
-                onPointerUp?.call();
-              };
+              instance.onEnd = (args) => _endPath(instance);
             },
           ),
         },
@@ -230,10 +249,11 @@ class _SinglePanGestureRecognizer extends PanGestureRecognizer {
       return;
     }
 
-    isDown = true;
+    //isDown = true;
     super.addAllowedPointer(event);
   }
 
+/*
   @override
   void handleEvent(PointerEvent event) {
     super.handleEvent(event);
@@ -241,5 +261,5 @@ class _SinglePanGestureRecognizer extends PanGestureRecognizer {
     if (!event.down) {
       isDown = false;
     }
-  }
+  }*/
 }
