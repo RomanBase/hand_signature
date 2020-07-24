@@ -1,7 +1,11 @@
+## [0.6.3] - Scroll
+Added `TapGestureDetector` and current `PanGestureDetector` has been modified to support drawing in `ScrollView`.\
+Also pointer callbacks are now exposed to detect **start** and **end** of drawing.
+## [0.6.2] - Documentation and bug fixes
 ## [0.6.1] - Shape, Arc, Line
 Draw line as single shape (huge performance update).\
 Selection of 3 draw styles (shape, arc, line). Arc is still nicest, but has performance issues..\
-**SignatureDrawType.shape** is now default draw and export style.
+`SignatureDrawType.shape` is now default draw and export style.
 ## [0.5.1] - Dot
 Support dot drawing based on last line size.\
 Minor performance updates.

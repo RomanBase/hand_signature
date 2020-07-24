@@ -1,26 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:hand_signature/signature.dart';
 
-HandSignatureControl control = HandSignatureControl(
-  threshold: 5.0,
-  smoothRatio: 0.65,
-  velocityRange: 2.0,
-);
-
-ScrollController scrollController = ScrollController();
-
 class ScrollTest extends StatefulWidget {
   @override
   _ScrollTestState createState() => _ScrollTestState();
 }
 
 class _ScrollTestState extends State<ScrollTest> {
+  final control = HandSignatureControl(
+    threshold: 5.0,
+    smoothRatio: 0.65,
+    velocityRange: 2.0,
+  );
+
+  bool scrollEnabled = true;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.orange,
       body: ListView(
-        controller: scrollController,
+        physics: scrollEnabled ? BouncingScrollPhysics() : NeverScrollableScrollPhysics(),
         children: <Widget>[
           Container(
             height: MediaQuery.of(context).size.height * 0.35,
@@ -32,10 +32,14 @@ class _ScrollTestState extends State<ScrollTest> {
               control: control,
               type: SignatureDrawType.shape,
               onPointerDown: () {
-                print('down');
+                setState(() {
+                  scrollEnabled = false;
+                });
               },
               onPointerUp: () {
-                print('up');
+                setState(() {
+                  scrollEnabled = true;
+                });
               },
             ),
           ),
