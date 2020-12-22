@@ -29,7 +29,7 @@ extension OffsetEx on Offset {
     final len = axisDistanceTo(other);
     final m = sqrt(len.dx * len.dx + len.dy * len.dy);
 
-    return Offset(len.dx / m, len.dy / m);
+    return Offset(m == 0 ? 0 : (len.dx / m), m == 0 ? 0 : (len.dy / m));
   }
 
   Offset rotate(double radians) {
