@@ -7,7 +7,7 @@ import 'package:signature_example/scroll_test.dart';
 void main() => runApp(MyApp());
 
 HandSignatureControl control = new HandSignatureControl(
-  threshold: 5.0,
+  threshold: 0.01,
   smoothRatio: 0.65,
   velocityRange: 2.0,
 );

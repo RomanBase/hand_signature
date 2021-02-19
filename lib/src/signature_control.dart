@@ -577,24 +577,26 @@ class CubicPath {
           end: _points[0],
         ));
       } else {
-        _addLine(CubicLine(
-          start: _points[0],
-          cpStart: _points[0],
-          cpEnd: _points[1],
-          end: _points[1],
-        ));
+        if (_points[0].distanceTo(points[1]) > 0.0) {
+          _addLine(CubicLine(
+            start: _points[0],
+            cpStart: _points[0],
+            cpEnd: _points[1],
+            end: _points[1],
+          ));
+        }
       }
     } else {
       final i = _points.length - 3;
 
-      final end = CubicLine(
-        start: _points[i + 1],
-        cpStart: _points[i + 1],
-        cpEnd: _points[i + 2],
-        end: _points[i + 2],
-      );
-
-      _addLine(end);
+      if (_points[i + 1].distanceTo(points[i + 2]) > 0.0) {
+        _addLine(CubicLine(
+          start: _points[i + 1],
+          cpStart: _points[i + 1],
+          cpEnd: _points[i + 2],
+          end: _points[i + 2],
+        ));
+      }
     }
 
     return true;
@@ -721,7 +723,9 @@ class HandSignatureControl extends ChangeNotifier {
     this.threshold: 3.0,
     this.smoothRatio: 0.65,
     this.velocityRange: 2.0,
-  });
+  })  : assert(threshold > 0.0),
+        assert(smoothRatio > 0.0),
+        assert(velocityRange > 0.0);
 
   /// Starts new line at given [point].
   void startPath(Offset point) {
