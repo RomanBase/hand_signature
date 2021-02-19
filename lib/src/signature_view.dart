@@ -64,7 +64,7 @@ class HandSignaturePainterView extends StatelessWidget {
     return ClipRRect(
       child: RawGestureDetector(
         gestures: <Type, GestureRecognizerFactory>{
-          TapGestureRecognizer: GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+          /*TapGestureRecognizer: GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
             () => TapGestureRecognizer(debugOwner: this),
             (instance) {
               instance.onTapDown = (args) => _startPath(null, args.localPosition);
@@ -77,6 +77,15 @@ class HandSignaturePainterView extends StatelessWidget {
               instance.onStart = (args) => _startPath(instance, args.localPosition);
               instance.onUpdate = (args) => control.alterPath(args.localPosition);
               instance.onEnd = (args) => _endPath(instance);
+            },
+          ),*/
+
+          _PointerGestureRecognizer: GestureRecognizerFactoryWithHandlers<_PointerGestureRecognizer>(
+            () => _PointerGestureRecognizer(debugOwner: this),
+            (instance) {
+              instance.onStart = (position) => control.startPath(position);
+              instance.onUpdate = (position) => control.alterPath(position);
+              instance.onEnd = (position) => control.closePath();
             },
           ),
         },
@@ -262,4 +271,42 @@ class _SinglePanGestureRecognizer extends PanGestureRecognizer {
       isDown = false;
     }
   }*/
+}
+
+class _PointerGestureRecognizer extends OneSequenceGestureRecognizer {
+  @override
+  String get debugDescription => 'open';
+
+  ValueChanged<Offset> onStart;
+  ValueChanged<Offset> onUpdate;
+  ValueChanged<Offset> onEnd;
+
+  _PointerGestureRecognizer({
+    Object debugOwner,
+    PointerDeviceKind kind,
+  }) : super(
+          debugOwner: debugOwner,
+          kind: kind,
+        );
+
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    startTrackingPointer(event.pointer, event.transform);
+  }
+
+  @override
+  void handleEvent(PointerEvent event) {
+    if (event is PointerMoveEvent) {
+      onUpdate?.call(event.localPosition);
+    } else if (event is PointerDownEvent) {
+      onStart?.call(event.localPosition);
+    } else if (event is PointerUpEvent) {
+      onEnd?.call(event.localPosition);
+    }
+  }
+
+  @override
+  void didStopTrackingLastPointer(int pointer) {
+    // TODO: implement didStopTrackingLastPointer
+  }
 }
