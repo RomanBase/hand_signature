@@ -24,15 +24,15 @@ class HandSignaturePainterView extends StatelessWidget {
   final SignatureDrawType type;
 
   /// Callback when path drawing starts.
-  final VoidCallback onPointerDown;
+  final VoidCallback? onPointerDown;
 
   /// Callback when path drawing ends.
-  final VoidCallback onPointerUp;
+  final VoidCallback? onPointerUp;
 
   /// Draws [Path] based on input and stores data in [control].
   HandSignaturePainterView({
-    Key key,
-    @required this.control,
+    Key? key,
+    required this.control,
     this.color: Colors.black,
     this.width: 1.0,
     this.maxWidth: 10.0,
@@ -42,7 +42,7 @@ class HandSignaturePainterView extends StatelessWidget {
   }) : super(key: key);
 
   void _startPath(_SinglePanGestureRecognizer instance, Offset point) {
-    instance?.isDown = true;
+    instance.isDown = true;
 
     if (!control.hasActivePath) {
       onPointerDown?.call();
@@ -56,7 +56,7 @@ class HandSignaturePainterView extends StatelessWidget {
       onPointerUp?.call();
     }
 
-    instance?.isDown = false;
+    instance.isDown = false;
   }
 
   @override
@@ -105,24 +105,24 @@ class HandSignaturePainterView extends StatelessWidget {
 /// Wraps [DrawableSignaturePainter] to paint svg [Drawable].
 class HandSignatureView extends StatelessWidget {
   /// Svg data to draw.
-  final Drawable data;
+  final Drawable? data;
 
   /// Path color.
-  final Color color;
+  final Color? color;
 
   /// Path size modifier.
-  final double Function(double width) strokeWidth;
+  final double Function(double width)? strokeWidth;
 
   /// Canvas padding.
-  final EdgeInsets padding;
+  final EdgeInsets? padding;
 
   /// Placeholder widget when no data provided.
-  final Widget placeholder;
+  final Widget? placeholder;
 
   /// Draws [Path] based on [Drawable] data.
   const HandSignatureView({
-    Key key,
-    @required this.data,
+    Key? key,
+    required this.data,
     this.color,
     this.strokeWidth,
     this.padding,
@@ -131,12 +131,12 @@ class HandSignatureView extends StatelessWidget {
 
   /// Draws [Path] based on [svg] data.
   static _HandSignatureViewSvg svg({
-    Key key,
-    @required String data,
-    Color color,
-    double Function(double width) strokeWidth,
-    EdgeInsets padding,
-    Widget placeholder,
+    Key? key,
+    required String data,
+    Color? color,
+    double Function(double width)? strokeWidth,
+    EdgeInsets? padding,
+    Widget? placeholder,
   }) =>
       _HandSignatureViewSvg(
         key: key,
@@ -159,10 +159,10 @@ class HandSignatureView extends StatelessWidget {
         fit: BoxFit.contain,
         alignment: Alignment.center,
         child: SizedBox.fromSize(
-          size: PathUtil.getDrawableSize(data),
+          size: PathUtil.getDrawableSize(data as DrawableRoot),
           child: CustomPaint(
             painter: DrawableSignaturePainter(
-              drawable: data,
+              drawable: data as DrawableParent,
               color: color,
               strokeWidth: strokeWidth,
             ),
@@ -176,14 +176,14 @@ class HandSignatureView extends StatelessWidget {
 /// Parses [svg] to [Drawable] and pains [DrawableSignaturePainter].
 class _HandSignatureViewSvg extends StatefulWidget {
   final String data;
-  final Color color;
-  final double Function(double width) strokeWidth;
-  final EdgeInsets padding;
-  final Widget placeholder;
+  final Color? color;
+  final double Function(double width)? strokeWidth;
+  final EdgeInsets? padding;
+  final Widget? placeholder;
 
   const _HandSignatureViewSvg({
-    Key key,
-    @required this.data,
+    Key? key,
+    required this.data,
     this.color,
     this.strokeWidth,
     this.padding,
@@ -196,7 +196,7 @@ class _HandSignatureViewSvg extends StatefulWidget {
 
 /// State of [_HandSignatureViewSvg].
 class _HandSignatureViewSvgState extends State<_HandSignatureViewSvg> {
-  DrawableParent drawable;
+  DrawableParent? drawable;
 
   @override
   void initState() {
@@ -205,8 +205,8 @@ class _HandSignatureViewSvgState extends State<_HandSignatureViewSvg> {
     _parseData(widget.data);
   }
 
-  void _parseData(String data) async {
-    if (data == null) {
+  void _parseData(String? data) async {
+    if (data == null || data.isEmpty) {
       drawable = null;
     } else {
       try {
@@ -248,7 +248,7 @@ class _HandSignatureViewSvgState extends State<_HandSignatureViewSvg> {
 /// Custom [PanGestureRecognizer] that handles just one input touch.
 /// Don't allow multi touch.
 class _SinglePanGestureRecognizer extends PanGestureRecognizer {
-  _SinglePanGestureRecognizer({Object debugOwner}) : super(debugOwner: debugOwner);
+  _SinglePanGestureRecognizer({Object? debugOwner}) : super(debugOwner: debugOwner);
 
   bool isDown = false;
 
@@ -258,32 +258,23 @@ class _SinglePanGestureRecognizer extends PanGestureRecognizer {
       return;
     }
 
-    //isDown = true;
     super.addAllowedPointer(event);
   }
-
-/*
-  @override
-  void handleEvent(PointerEvent event) {
-    super.handleEvent(event);
-
-    if (!event.down) {
-      isDown = false;
-    }
-  }*/
 }
 
 class _PointerGestureRecognizer extends OneSequenceGestureRecognizer {
   @override
   String get debugDescription => 'open';
 
-  ValueChanged<Offset> onStart;
-  ValueChanged<Offset> onUpdate;
-  ValueChanged<Offset> onEnd;
+  ValueChanged<Offset>? onStart;
+  ValueChanged<Offset>? onUpdate;
+  ValueChanged<Offset>? onEnd;
+
+  bool singleGesture = false;
 
   _PointerGestureRecognizer({
-    Object debugOwner,
-    PointerDeviceKind kind,
+    Object? debugOwner,
+    PointerDeviceKind? kind,
   }) : super(
           debugOwner: debugOwner,
           kind: kind,
@@ -291,6 +282,10 @@ class _PointerGestureRecognizer extends OneSequenceGestureRecognizer {
 
   @override
   void addAllowedPointer(PointerDownEvent event) {
+    if (singleGesture) {
+      return;
+    }
+
     startTrackingPointer(event.pointer, event.transform);
   }
 
@@ -299,14 +294,17 @@ class _PointerGestureRecognizer extends OneSequenceGestureRecognizer {
     if (event is PointerMoveEvent) {
       onUpdate?.call(event.localPosition);
     } else if (event is PointerDownEvent) {
+      singleGesture = true;
       onStart?.call(event.localPosition);
     } else if (event is PointerUpEvent) {
+      singleGesture = false;
+      onEnd?.call(event.localPosition);
+    } else if (event is PointerCancelEvent){
+      singleGesture = false;
       onEnd?.call(event.localPosition);
     }
   }
 
   @override
-  void didStopTrackingLastPointer(int pointer) {
-    // TODO: implement didStopTrackingLastPointer
-  }
+  void didStopTrackingLastPointer(int pointer) {}
 }

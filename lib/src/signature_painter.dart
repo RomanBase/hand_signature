@@ -18,7 +18,7 @@ enum SignatureDrawType {
 /// Used during signature painting.
 class PathSignaturePainter extends CustomPainter {
   /// Paths to paint.
-  final List<CubicPath> paths;
+  final List<CubicPath?> paths;
 
   /// Single color of paint.
   final Color color;
@@ -31,7 +31,7 @@ class PathSignaturePainter extends CustomPainter {
 
   //TODO: remove this and move size changes to Widget side..
   /// Callback when canvas size is changed.
-  final bool Function(Size size) onSize;
+  final bool Function(Size size)? onSize;
 
   /// Type of signature path.
   final SignatureDrawType type;
@@ -51,7 +51,7 @@ class PathSignaturePainter extends CustomPainter {
 
   /// [Path] painter.
   PathSignaturePainter({
-    @required this.paths,
+    required this.paths,
     this.color: Colors.black,
     this.width: 1.0,
     this.maxWidth: 10.0,
@@ -63,7 +63,7 @@ class PathSignaturePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     //TODO: move to widget/state
     if (onSize != null) {
-      if (onSize(size)) {
+      if (onSize!(size)) {
         return;
       }
     }
@@ -77,14 +77,14 @@ class PathSignaturePainter extends CustomPainter {
         final paint = strokePaint;
 
         paths.forEach((path) {
-          canvas.drawPath(PathUtil.toLinePath(path.lines), paint);
+          canvas.drawPath(PathUtil.toLinePath(path!.lines), paint);
         });
         break;
       case SignatureDrawType.arc:
         final paint = strokePaint;
 
         paths.forEach((path) {
-          path.arcs.forEach((arc) {
+          path!.arcs.forEach((arc) {
             paint.strokeWidth = width + (maxWidth - width) * arc.size;
             canvas.drawPath(arc.path, paint);
           });
@@ -94,7 +94,7 @@ class PathSignaturePainter extends CustomPainter {
         final paint = fillPaint;
 
         paths.forEach((path) {
-          if (path.isFilled) {
+          if (path!.isFilled) {
             if (path.isDot) {
               canvas.drawCircle(path.lines[0], path.lines[0].startRadius(width, maxWidth), paint);
             } else {
@@ -126,17 +126,17 @@ class DrawableSignaturePainter extends CustomPainter {
   final DrawableParent drawable;
 
   /// Path color. Overrides color of [Drawable].
-  final Color color;
+  final Color? color;
 
   /// Path size modifier.
-  final double Function(double width) strokeWidth;
+  final double Function(double width)? strokeWidth;
 
   /// [Drawable] painter.
   DrawableSignaturePainter({
-    @required this.drawable,
+    required this.drawable,
     this.color,
     this.strokeWidth,
-  }) : assert(drawable != null);
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -153,28 +153,28 @@ class DrawableSignaturePainter extends CustomPainter {
   /// Recursive function to draw all shapes as [Path].
   void _draw(DrawableParent root, Canvas canvas, Paint paint) {
     if (root.children != null) {
-      root.children.forEach((drawable) {
+      root.children!.forEach((drawable) {
         if (drawable is DrawableShape) {
-          final stroke = drawable.style?.stroke;
-          final fill = drawable.style?.fill;
+          final stroke = drawable.style.stroke;
+          final fill = drawable.style.fill;
 
           if (fill != null && !DrawablePaint.isEmpty(fill)) {
             paint.style = PaintingStyle.fill;
             if (color == null && fill.color != null) {
-              paint.color = fill.color;
+              paint.color = fill.color!;
             }
           } else if (stroke != null && !DrawablePaint.isEmpty(stroke)) {
             paint.style = PaintingStyle.stroke;
 
             if (color == null && stroke.color != null) {
-              paint.color = stroke.color;
+              paint.color = stroke.color!;
             }
 
             if (stroke.strokeWidth != null) {
               if (strokeWidth != null) {
-                paint.strokeWidth = strokeWidth(stroke.strokeWidth);
+                paint.strokeWidth = strokeWidth!(stroke.strokeWidth!);
               } else {
-                paint.strokeWidth = stroke.strokeWidth;
+                paint.strokeWidth = stroke.strokeWidth!;
               }
             }
           }
@@ -202,7 +202,7 @@ class DebugSignaturePainterCP extends CustomPainter {
   final Color color;
 
   DebugSignaturePainterCP({
-    @required this.control,
+    required this.control,
     this.cp: false,
     this.cpStart: true,
     this.cpEnd: true,

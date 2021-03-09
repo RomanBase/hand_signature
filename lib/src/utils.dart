@@ -110,15 +110,15 @@ class PathUtil {
   }
 
   static List<T> translate<T extends Offset>(List<T> data, Offset location) {
-    final output = List<T>();
+    final output = <T>[];
 
-    data.forEach((point) => output.add(point.translate(location.dx, location.dy)));
+    data.forEach((point) => output.add(point.translate(location.dx, location.dy) as T));
 
     return output;
   }
 
   static List<List<T>> translateData<T extends Offset>(List<List<T>> data, Offset location) {
-    final output = List<List<T>>();
+    final output = <List<T>>[];
 
     data.forEach((set) => output.add(translate(set, location)));
 
@@ -126,22 +126,22 @@ class PathUtil {
   }
 
   static List<T> scale<T extends Offset>(List<T> data, double ratio) {
-    final output = List<T>();
+    final output = <T>[];
 
-    data.forEach((point) => output.add(point.scale(ratio, ratio)));
+    data.forEach((point) => output.add(point.scale(ratio, ratio) as T));
 
     return output;
   }
 
   static List<List<T>> scaleData<T extends Offset>(List<List<T>> data, double ratio) {
-    final output = List<List<T>>();
+    final output = <List<T>>[];
 
     data.forEach((set) => output.add(scale(set, ratio)));
 
     return output;
   }
 
-  static List<T> normalize<T extends Offset>(List<T> data, {Rect bound, double border}) {
+  static List<T> normalize<T extends Offset>(List<T> data, {Rect? bound, double? border}) {
     bound ??= bounds(data);
     border ??= 0.0;
 
@@ -151,7 +151,7 @@ class PathUtil {
     );
   }
 
-  static List<List<T>> normalizeData<T extends Offset>(List<List<T>> data, {Rect bound}) {
+  static List<List<T>> normalizeData<T extends Offset>(List<List<T>> data, {Rect? bound}) {
     bound ??= boundsOf(data);
 
     final ratio = 1.0 / max(bound.width, bound.height);
@@ -162,7 +162,7 @@ class PathUtil {
     );
   }
 
-  static List<T> fill<T extends Offset>(List<T> data, Rect rect, {Rect bound, double border}) {
+  static List<T> fill<T extends Offset>(List<T> data, Rect rect, {Rect? bound, double? border}) {
     bound ??= bounds(data);
     border ??= 4.0;
 
@@ -187,7 +187,7 @@ class PathUtil {
         borderSize);
   }
 
-  static List<List<T>> fillData<T extends Offset>(List<List<T>> data, Rect rect, {Rect bound, double border}) {
+  static List<List<T>> fillData<T extends Offset>(List<List<T>> data, Rect rect, {Rect? bound, double? border}) {
     bound ??= boundsOf(data);
     border ??= 4.0;
 
@@ -224,7 +224,7 @@ class PathUtil {
   }
 
   static List<Path> toPaths(List<List<Offset>> data) {
-    final paths = List<Path>();
+    final paths = <Path>[];
 
     data.forEach((line) => paths.add(toPath(line)));
 
@@ -259,7 +259,7 @@ class PathUtil {
   }
 
   static List<Path> scalePaths(List<Path> data, double ratio) {
-    final output = List<Path>();
+    final output = <Path>[];
 
     data.forEach((path) => output.add(scalePath(path, ratio)));
 
@@ -267,7 +267,7 @@ class PathUtil {
   }
 
   static List<Path> translatePaths(List<Path> data, Offset location) {
-    final output = List<Path>();
+    final output = <Path>[];
 
     final transform = Matrix4.identity();
     transform.translate(location.dx, location.dy);
@@ -278,7 +278,7 @@ class PathUtil {
   }
 
   static List<Path> parseDrawable(DrawableParent root) {
-    final list = List<Path>();
+    final list = <Path>[];
 
     _parseDrawableRoot(root, list);
 
@@ -287,7 +287,7 @@ class PathUtil {
 
   static _parseDrawableRoot(DrawableParent root, List<Path> output) {
     if (root.children != null) {
-      root.children.forEach((drawable) {
+      root.children!.forEach((drawable) {
         if (drawable is DrawableShape) {
           output.add(drawable.path);
         } else if (drawable is DrawableParent) {

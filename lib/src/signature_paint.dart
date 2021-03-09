@@ -24,12 +24,12 @@ class HandSignaturePaint extends StatefulWidget {
 
   //TODO: remove this and move size changes to State..
   /// Callback when canvas size is changed.
-  final bool Function(Size size) onSize;
+  final bool Function(Size size)? onSize;
 
   /// Draws path based on data from [control].
   const HandSignaturePaint({
-    Key key,
-    @required this.control,
+    Key? key,
+    required this.control,
     this.color: Colors.black,
     this.width: 1.0,
     this.maxWidth: 10.0,
