@@ -20,7 +20,9 @@ class _ScrollTestState extends State<ScrollTest> {
     return Scaffold(
       backgroundColor: Colors.orange,
       body: ListView(
-        physics: scrollEnabled ? BouncingScrollPhysics() : NeverScrollableScrollPhysics(),
+        physics: scrollEnabled
+            ? BouncingScrollPhysics()
+            : NeverScrollableScrollPhysics(),
         children: <Widget>[
           Container(
             height: MediaQuery.of(context).size.height * 0.35,

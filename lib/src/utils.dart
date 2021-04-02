@@ -50,7 +50,8 @@ extension OffsetEx on Offset {
 extension PathEx on Path {
   void start(Offset offset) => moveTo(offset.dx, offset.dy);
 
-  void cubic(Offset cpStart, Offset cpEnd, Offset end) => cubicTo(cpStart.dx, cpStart.dy, cpEnd.dx, cpEnd.dy, end.dx, end.dy);
+  void cubic(Offset cpStart, Offset cpEnd, Offset end) =>
+      cubicTo(cpStart.dx, cpStart.dy, cpEnd.dx, cpEnd.dy, end.dx, end.dy);
 
   void line(Offset offset) => lineTo(offset.dx, offset.dy);
 }
@@ -112,12 +113,14 @@ class PathUtil {
   static List<T> translate<T extends Offset>(List<T> data, Offset location) {
     final output = <T>[];
 
-    data.forEach((point) => output.add(point.translate(location.dx, location.dy) as T));
+    data.forEach(
+        (point) => output.add(point.translate(location.dx, location.dy) as T));
 
     return output;
   }
 
-  static List<List<T>> translateData<T extends Offset>(List<List<T>> data, Offset location) {
+  static List<List<T>> translateData<T extends Offset>(
+      List<List<T>> data, Offset location) {
     final output = <List<T>>[];
 
     data.forEach((set) => output.add(translate(set, location)));
@@ -133,7 +136,8 @@ class PathUtil {
     return output;
   }
 
-  static List<List<T>> scaleData<T extends Offset>(List<List<T>> data, double ratio) {
+  static List<List<T>> scaleData<T extends Offset>(
+      List<List<T>> data, double ratio) {
     final output = <List<T>>[];
 
     data.forEach((set) => output.add(scale(set, ratio)));
@@ -141,7 +145,8 @@ class PathUtil {
     return output;
   }
 
-  static List<T> normalize<T extends Offset>(List<T> data, {Rect? bound, double? border}) {
+  static List<T> normalize<T extends Offset>(List<T> data,
+      {Rect? bound, double? border}) {
     bound ??= bounds(data);
     border ??= 0.0;
 
@@ -151,7 +156,8 @@ class PathUtil {
     );
   }
 
-  static List<List<T>> normalizeData<T extends Offset>(List<List<T>> data, {Rect? bound}) {
+  static List<List<T>> normalizeData<T extends Offset>(List<List<T>> data,
+      {Rect? bound}) {
     bound ??= boundsOf(data);
 
     final ratio = 1.0 / max(bound.width, bound.height);
@@ -162,7 +168,8 @@ class PathUtil {
     );
   }
 
-  static List<T> fill<T extends Offset>(List<T> data, Rect rect, {Rect? bound, double? border}) {
+  static List<T> fill<T extends Offset>(List<T> data, Rect rect,
+      {Rect? bound, double? border}) {
     bound ??= bounds(data);
     border ??= 4.0;
 
@@ -170,14 +177,21 @@ class PathUtil {
     final sourceSize = bound;
     Size destinationSize;
 
-    if (outputSize.width / outputSize.height > sourceSize.width / sourceSize.height) {
-      destinationSize = Size(sourceSize.width * outputSize.height / sourceSize.height, outputSize.height);
+    if (outputSize.width / outputSize.height >
+        sourceSize.width / sourceSize.height) {
+      destinationSize = Size(
+          sourceSize.width * outputSize.height / sourceSize.height,
+          outputSize.height);
     } else {
-      destinationSize = Size(outputSize.width, sourceSize.height * outputSize.width / sourceSize.width);
+      destinationSize = Size(outputSize.width,
+          sourceSize.height * outputSize.width / sourceSize.width);
     }
 
-    destinationSize = Size(destinationSize.width - border * 2.0, destinationSize.height - border * 2.0);
-    final borderSize = Offset(rect.width - destinationSize.width, rect.height - destinationSize.height) * 0.5;
+    destinationSize = Size(destinationSize.width - border * 2.0,
+        destinationSize.height - border * 2.0);
+    final borderSize = Offset(rect.width - destinationSize.width,
+            rect.height - destinationSize.height) *
+        0.5;
 
     return translate<T>(
         scale<T>(
@@ -187,7 +201,8 @@ class PathUtil {
         borderSize);
   }
 
-  static List<List<T>> fillData<T extends Offset>(List<List<T>> data, Rect rect, {Rect? bound, double? border}) {
+  static List<List<T>> fillData<T extends Offset>(List<List<T>> data, Rect rect,
+      {Rect? bound, double? border}) {
     bound ??= boundsOf(data);
     border ??= 4.0;
 
@@ -195,14 +210,21 @@ class PathUtil {
     final sourceSize = bound;
     Size destinationSize;
 
-    if (outputSize.width / outputSize.height > sourceSize.width / sourceSize.height) {
-      destinationSize = Size(sourceSize.width * outputSize.height / sourceSize.height, outputSize.height);
+    if (outputSize.width / outputSize.height >
+        sourceSize.width / sourceSize.height) {
+      destinationSize = Size(
+          sourceSize.width * outputSize.height / sourceSize.height,
+          outputSize.height);
     } else {
-      destinationSize = Size(outputSize.width, sourceSize.height * outputSize.width / sourceSize.width);
+      destinationSize = Size(outputSize.width,
+          sourceSize.height * outputSize.width / sourceSize.width);
     }
 
-    destinationSize = Size(destinationSize.width - border * 2.0, destinationSize.height - border * 2.0);
-    final borderSize = Offset(rect.width - destinationSize.width, rect.height - destinationSize.height) * 0.5;
+    destinationSize = Size(destinationSize.width - border * 2.0,
+        destinationSize.height - border * 2.0);
+    final borderSize = Offset(rect.width - destinationSize.width,
+            rect.height - destinationSize.height) *
+        0.5;
 
     return translateData<T>(
         scaleData<T>(
