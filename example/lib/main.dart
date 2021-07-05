@@ -1,8 +1,10 @@
 import 'dart:typed_data';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hand_signature/signature.dart';
-import 'package:signature_example/scroll_test.dart';
+
+import 'scroll_test.dart';
 
 void main() => runApp(MyApp());
 
@@ -65,11 +67,11 @@ class MyApp extends StatelessWidget {
                         ),
                         Row(
                           children: <Widget>[
-                            RaisedButton(
+                            CupertinoButton(
                               onPressed: control.clear,
                               child: Text('clear'),
                             ),
-                            RaisedButton(
+                            CupertinoButton(
                               onPressed: () async {
                                 svg.value = control.toSvg(
                                   color: Colors.blueGrey,
@@ -80,6 +82,7 @@ class MyApp extends StatelessWidget {
 
                                 rawImage.value = await control.toImage(
                                   color: Colors.blueAccent,
+                                  background: Colors.grey,
                                 );
                               },
                               child: Text('export'),

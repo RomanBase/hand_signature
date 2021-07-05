@@ -1,21 +1,19 @@
 name: hand_signature
 description: The signature pad widget that allows to draw signature with finger.
 homepage: https://github.com/romanbase/hand_signature
-version: 0.6.3
+version: 2.0.0
 
 environment:
-  sdk: ">=2.6.0 <3.0.0"
+  sdk: ">=2.12.0 <3.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
 
-  flutter_svg: any
+  flutter_svg: ">=0.21.0"
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  pedantic: any
 
 flutter:

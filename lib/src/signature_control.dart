@@ -44,9 +44,9 @@ class OffsetPoint extends Offset {
   /// 2D point in canvas space.
   /// [timestamp] of this [Offset]. Used to determine velocity to other points.
   const OffsetPoint({
-    double dx,
-    double dy,
-    this.timestamp,
+    required double dx,
+    required double dy,
+    required this.timestamp,
   }) : super(dx, dy);
 
   factory OffsetPoint.from(Offset offset) => OffsetPoint(
@@ -56,7 +56,9 @@ class OffsetPoint extends Offset {
       );
 
   /// Returns velocity between this and [other] - previous point.
-  double velocityFrom(OffsetPoint other) => timestamp != other.timestamp ? this.distanceTo(other) / (timestamp - other.timestamp) : 0.0;
+  double velocityFrom(OffsetPoint other) => timestamp != other.timestamp
+      ? this.distanceTo(other) / (timestamp - other.timestamp)
+      : 0.0;
 
   @override
   OffsetPoint translate(double translateX, double translateY) {
@@ -78,7 +80,10 @@ class OffsetPoint extends Offset {
 
   @override
   bool operator ==(other) {
-    return other is OffsetPoint && other.dx == dx && other.dy == dy && other.timestamp == timestamp;
+    return other is OffsetPoint &&
+        other.dx == dx &&
+        other.dy == dy &&
+        other.timestamp == timestamp;
   }
 
   @override
@@ -100,20 +105,24 @@ class CubicLine extends Offset {
   /// End point of curve.
   final OffsetPoint end;
 
-  double _velocity;
-  double _distance;
+  late double _velocity;
+  late double _distance;
 
   /// Cache of Up vector.
-  Offset _upStartVector;
+  Offset? _upStartVector;
 
   /// Up vector of [start] point.
-  Offset get upStartVector => _upStartVector ?? (_upStartVector = start.directionTo(point(0.001)).rotate(-math.pi * 0.5));
+  Offset get upStartVector =>
+      _upStartVector ??
+      (_upStartVector = start.directionTo(point(0.001)).rotate(-math.pi * 0.5));
 
   /// Cache of Up vector.
-  Offset _upEndVector;
+  Offset? _upEndVector;
 
   /// Up vector of [end] point.
-  Offset get upEndVector => _upEndVector ?? (_upEndVector = end.directionTo(point(0.999)).rotate(math.pi * 0.5));
+  Offset get upEndVector =>
+      _upEndVector ??
+      (_upEndVector = end.directionTo(point(0.999)).rotate(math.pi * 0.5));
 
   /// Down vector.
   Offset get _downStartVector => upStartVector.rotate(math.pi);
@@ -141,12 +150,12 @@ class CubicLine extends Offset {
   /// [upStartVector] - pre-calculated Up vector fo start point.
   /// [upEndVector] - pre-calculated Up vector of end point.
   CubicLine({
-    @required this.start,
-    @required this.cpStart,
-    @required this.cpEnd,
-    @required this.end,
-    Offset upStartVector,
-    Offset upEndVector,
+    required this.start,
+    required this.cpStart,
+    required this.cpEnd,
+    required this.end,
+    Offset? upStartVector,
+    Offset? upEndVector,
     this.startSize: 0.0,
     this.endSize: 0.0,
   }) : super(start.dx, start.dy) {
@@ -211,15 +220,22 @@ class CubicLine extends Offset {
   /// Returns location on Curve at [t].
   Offset point(double t) {
     final rt = 1.0 - t;
-    return (start * rt * rt * rt) + (cpStart * 3.0 * rt * rt * t) + (cpEnd * 3.0 * rt * t * t) + (end * t * t * t);
+    return (start * rt * rt * rt) +
+        (cpStart * 3.0 * rt * rt * t) +
+        (cpEnd * 3.0 * rt * t * t) +
+        (end * t * t * t);
   }
 
   /// Velocity along this line.
-  double velocity({double accuracy: 0.0}) => start.timestamp != end.timestamp ? length(accuracy: accuracy) / (end.timestamp - start.timestamp) : 0.0;
+  double velocity({double accuracy: 0.0}) => start.timestamp != end.timestamp
+      ? length(accuracy: accuracy) / (end.timestamp - start.timestamp)
+      : 0.0;
 
   /// Combines line velocity with [inVelocity] based on [velocityRatio].
-  double combineVelocity(double inVelocity, {double velocityRatio: 0.65, double maxFallOff: 1.0}) {
-    final value = (_velocity * velocityRatio) + (inVelocity * (1.0 - velocityRatio));
+  double combineVelocity(double inVelocity,
+      {double velocityRatio: 0.65, double maxFallOff: 1.0}) {
+    final value =
+        (_velocity * velocityRatio) + (inVelocity * (1.0 - velocityRatio));
 
     maxFallOff *= _distance / 10.0;
 
@@ -242,7 +258,7 @@ class CubicLine extends Offset {
 
   /// Converts this line to [CubicArc].
   List<CubicArc> toArc(double size, double deltaSize, {double precision: 0.5}) {
-    final list = List<CubicArc>();
+    final list = <CubicArc>[];
 
     final steps = (_distance * precision).floor().clamp(1, 30);
 
@@ -286,29 +302,40 @@ class CubicLine extends Offset {
   }
 
   /// Returns Up offset of start point.
-  Offset cpsUp(double size, double maxSize) => upStartVector * startRadius(size, maxSize);
+  Offset cpsUp(double size, double maxSize) =>
+      upStartVector * startRadius(size, maxSize);
 
   /// Returns Up offset of end point.
-  Offset cpeUp(double size, double maxSize) => upEndVector * endRadius(size, maxSize);
+  Offset cpeUp(double size, double maxSize) =>
+      upEndVector * endRadius(size, maxSize);
 
   /// Returns Down offset of start point.
-  Offset cpsDown(double size, double maxSize) => _downStartVector * startRadius(size, maxSize);
+  Offset cpsDown(double size, double maxSize) =>
+      _downStartVector * startRadius(size, maxSize);
 
   /// Returns Down offset of end point.
-  Offset cpeDown(double size, double maxSize) => _downEndVector * endRadius(size, maxSize);
+  Offset cpeDown(double size, double maxSize) =>
+      _downEndVector * endRadius(size, maxSize);
 
   /// Returns radius of start point.
-  double startRadius(double size, double maxSize) => _lerpRadius(size, maxSize, startSize);
+  double startRadius(double size, double maxSize) =>
+      _lerpRadius(size, maxSize, startSize);
 
   /// Returns radius of end point.
-  double endRadius(double size, double maxSize) => _lerpRadius(size, maxSize, endSize);
+  double endRadius(double size, double maxSize) =>
+      _lerpRadius(size, maxSize, endSize);
 
   /// Linear interpolation of size.
   /// Returns radius of interpolated size.
-  double _lerpRadius(double size, double maxSize, double t) => (size + (maxSize - size) * t) * 0.5;
+  double _lerpRadius(double size, double maxSize, double t) =>
+      (size + (maxSize - size) * t) * 0.5;
 
   /// Calculates [current] point based on [previous] and [next] control points.
-  static Offset softCP(OffsetPoint current, {OffsetPoint previous, OffsetPoint next, bool reverse: false, double smoothing: 0.65}) {
+  static Offset softCP(OffsetPoint current,
+      {OffsetPoint? previous,
+      OffsetPoint? next,
+      bool reverse: false,
+      double smoothing: 0.65}) {
     assert(smoothing >= 0.0 && smoothing <= 1.0);
 
     previous ??= current;
@@ -321,12 +348,16 @@ class CubicLine extends Offset {
     final dist = dist1 + dist2;
     final dir1 = current.directionTo(next);
     final dir2 = current.directionTo(previous);
-    final dir3 = reverse ? next.directionTo(previous) : previous.directionTo(next);
+    final dir3 =
+        reverse ? next.directionTo(previous) : previous.directionTo(next);
 
-    final velocity = (dist * 0.3 / (next.timestamp - previous.timestamp)).clamp(0.5, 3.0);
-    final ratio = (dist * velocity * smoothing).clamp(0.0, (reverse ? dist2 : dist1) * 0.5);
+    final velocity =
+        (dist * 0.3 / (next.timestamp - previous.timestamp)).clamp(0.5, 3.0);
+    final ratio = (dist * velocity * smoothing)
+        .clamp(0.0, (reverse ? dist2 : dist1) * 0.5);
 
-    final dir = ((reverse ? dir2 : dir1) * sharpness) + (dir3 * smoothing) * ratio;
+    final dir =
+        ((reverse ? dir2 : dir1) * sharpness) + (dir3 * smoothing) * ratio;
     final x = current.dx + dir.dx;
     final y = current.dy + dir.dy;
 
@@ -357,8 +388,8 @@ class CubicArc extends Offset {
   /// [location] end point of arc.
   /// [size] ratio of arc. typically 0 - 1.
   CubicArc({
-    @required Offset start,
-    @required this.location,
+    required Offset start,
+    required this.location,
     this.size: 1.0,
   }) : super(start.dx, start.dy);
 
@@ -380,13 +411,13 @@ class CubicArc extends Offset {
 /// Combines sequence of points into one Line.
 class CubicPath {
   /// Raw data.
-  final _points = List<OffsetPoint>();
+  final _points = <OffsetPoint>[];
 
   /// [CubicLine] representation of path.
-  final _lines = List<CubicLine>();
+  final _lines = <CubicLine>[];
 
   /// [CubicArc] representation of path.
-  final _arcs = List<CubicArc>();
+  final _arcs = <CubicArc>[];
 
   /// Returns raw data of path.
   List<OffsetPoint> get points => _points;
@@ -398,19 +429,20 @@ class CubicPath {
   List<CubicArc> get arcs => _arcs;
 
   /// First point of path.
-  Offset get _origin => _points.isNotEmpty ? _points[0] : null;
+  Offset? get _origin => _points.isNotEmpty ? _points[0] : null;
 
   /// Last point of path.
-  OffsetPoint get _lastPoint => _points.isNotEmpty ? _points[_points.length - 1] : null;
+  OffsetPoint? get _lastPoint =>
+      _points.isNotEmpty ? _points[_points.length - 1] : null;
 
   /// Checks if path is valid.
   bool get isFilled => _lines.isNotEmpty;
 
   /// Unfinished path.
-  Path _temp;
+  Path? _temp;
 
   /// Returns currently unfinished part of path.
-  Path get tempPath => _temp;
+  Path? get tempPath => _temp;
 
   /// Maximum possible velocity.
   double maxVelocity = 1.0;
@@ -458,7 +490,8 @@ class CubicPath {
 
     _lines.add(line);
 
-    final combinedVelocity = line.combineVelocity(_currentVelocity, maxFallOff: 0.125);
+    final combinedVelocity =
+        line.combineVelocity(_currentVelocity, maxFallOff: 0.125);
     final double endSize = _lineSize(combinedVelocity, maxVelocity);
 
     if (combinedVelocity > maxVelocity) {
@@ -505,7 +538,7 @@ class CubicPath {
 
     final nextPoint = point is OffsetPoint ? point : OffsetPoint.from(point);
 
-    if (_lastPoint.distanceTo(nextPoint) < threshold) {
+    if (_lastPoint == null || _lastPoint!.distanceTo(nextPoint) < threshold) {
       _temp = _line(_points.last, nextPoint);
 
       return;
@@ -557,7 +590,7 @@ class CubicPath {
   }
 
   /// Ends path at given [point].
-  bool end({Offset point}) {
+  bool end({Offset? point}) {
     if (point != null) {
       add(point);
     }
@@ -615,16 +648,17 @@ class CubicPath {
     );
 
   /// Creates [Path] between [start] and [end] points, curve is controlled be [startCp] and [endCp] control points.
-  Path _line(Offset start, Offset end, [Offset startCp, Offset endCp]) => Path()
-    ..moveTo(start.dx, start.dy)
-    ..cubicTo(
-      startCp != null ? startCp.dx : (start.dx + end.dx) * 0.5,
-      startCp != null ? startCp.dy : (start.dy + end.dy) * 0.5,
-      endCp != null ? endCp.dx : (start.dx + end.dx) * 0.5,
-      endCp != null ? endCp.dy : (start.dy + end.dy) * 0.5,
-      end.dx,
-      end.dy,
-    );
+  Path _line(Offset start, Offset end, [Offset? startCp, Offset? endCp]) =>
+      Path()
+        ..moveTo(start.dx, start.dy)
+        ..cubicTo(
+          startCp != null ? startCp.dx : (start.dx + end.dx) * 0.5,
+          startCp != null ? startCp.dy : (start.dy + end.dy) * 0.5,
+          endCp != null ? endCp.dx : (start.dx + end.dx) * 0.5,
+          endCp != null ? endCp.dy : (start.dy + end.dy) * 0.5,
+          end.dx,
+          end.dy,
+        );
 
   /// Sets scale of whole line.
   void setScale(double ratio) {
@@ -653,14 +687,14 @@ class CubicPath {
 /// Also handles export of finished signature.
 class HandSignatureControl extends ChangeNotifier {
   /// List of active paths.
-  final _paths = List<CubicPath>();
+  final _paths = <CubicPath>[];
 
   /// List of currently completed lines.
   List<CubicPath> get paths => _paths;
 
   /// Lazy list of all control points - raw data.
   List<List<Offset>> get _offsets {
-    final list = List<List<Offset>>();
+    final list = <List<Offset>>[];
 
     _paths.forEach((data) => list.add(data._points));
 
@@ -669,7 +703,7 @@ class HandSignatureControl extends ChangeNotifier {
 
   /// Lazy list of all Lines.
   List<List<CubicLine>> get _cubicLines {
-    final list = List<List<CubicLine>>();
+    final list = <List<CubicLine>>[];
 
     _paths.forEach((data) => list.add(data._lines));
 
@@ -678,7 +712,7 @@ class HandSignatureControl extends ChangeNotifier {
 
   /// Lazy list of all Arcs.
   List<CubicArc> get _arcs {
-    final list = List<CubicArc>();
+    final list = <CubicArc>[];
 
     _paths.forEach((data) => list.addAll(data.arcs));
 
@@ -687,7 +721,7 @@ class HandSignatureControl extends ChangeNotifier {
 
   /// Lazy list of all Lines.
   List<CubicLine> get lines {
-    final list = List<CubicLine>();
+    final list = <CubicLine>[];
 
     _paths.forEach((data) => list.addAll(data.lines));
 
@@ -695,7 +729,7 @@ class HandSignatureControl extends ChangeNotifier {
   }
 
   /// Currently unfinished path.
-  CubicPath _activePath;
+  CubicPath? _activePath;
 
   /// Checks if is there unfinished path.
   bool get hasActivePath => _activePath != null;
@@ -704,7 +738,7 @@ class HandSignatureControl extends ChangeNotifier {
   bool get isFilled => _paths.isNotEmpty;
 
   /// Visual parameters of line painting.
-  SignaturePaintParams params;
+  SignaturePaintParams? params;
 
   /// Canvas size.
   Size _areaSize = Size.zero;
@@ -736,25 +770,26 @@ class HandSignatureControl extends ChangeNotifier {
       smoothRatio: smoothRatio,
     )..maxVelocity = velocityRange;
 
-    _activePath.begin(point, velocity: _paths.isNotEmpty ? _paths.last._currentVelocity : 0.0);
+    _activePath!.begin(point,
+        velocity: _paths.isNotEmpty ? _paths.last._currentVelocity : 0.0);
 
-    _paths.add(_activePath);
+    _paths.add(_activePath!);
   }
 
   /// Adds [point[ to active path.
   void alterPath(Offset point) {
     assert(hasActivePath);
 
-    _activePath.add(point);
+    _activePath!.add(point);
 
     notifyListeners();
   }
 
   /// Closes active path at given [point].
-  void closePath({Offset point}) {
+  void closePath({Offset? point}) {
     assert(hasActivePath);
 
-    if (!_activePath.end(point: point)) {
+    if (!_activePath!.end(point: point)) {
       _paths.removeLast();
     }
 
@@ -791,7 +826,9 @@ class HandSignatureControl extends ChangeNotifier {
       return false;
     }
 
-    if (_areaSize.isEmpty || _areaSize.width == size.width || _areaSize.height == size.height) {
+    if (_areaSize.isEmpty ||
+        _areaSize.width == size.width ||
+        _areaSize.height == size.height) {
       _areaSize = size;
       return false;
     }
@@ -823,7 +860,15 @@ class HandSignatureControl extends ChangeNotifier {
 
   /// Converts data to [svg] String.
   /// [type] - data structure.
-  String toSvg({SignatureDrawType type: SignatureDrawType.shape, int width: 512, int height: 256, double border: 0.0, Color color, double size, double maxSize}) {
+  String? toSvg({
+    SignatureDrawType type: SignatureDrawType.shape,
+    int width: 512,
+    int height: 256,
+    double border: 0.0,
+    Color? color,
+    double? size,
+    double? maxSize,
+  }) {
     if (!isFilled) {
       return null;
     }
@@ -834,36 +879,44 @@ class HandSignatureControl extends ChangeNotifier {
       maxWidth: 10.0,
     );
 
-    color ??= params.color;
-    size ??= params.width;
-    maxSize ??= params.maxWidth;
+    color ??= params!.color;
+    size ??= params!.width;
+    maxSize ??= params!.maxWidth;
 
     switch (type) {
       case SignatureDrawType.line:
-        return _exportPathSvg(width: width, height: height, border: border, color: color, size: size);
+        return _exportPathSvg(width, height, border, color, size);
       case SignatureDrawType.arc:
-        return _exportArcSvg(width: width, height: height, border: border, color: color, size: size, maxSize: maxSize);
+        return _exportArcSvg(width, height, border, color, size, maxSize);
       case SignatureDrawType.shape:
-        return _exportShapeSvg(width: width, height: height, border: border, color: color, size: size, maxSize: maxSize);
+        return _exportShapeSvg(width, height, border, color, size, maxSize);
     }
-
-    return null;
   }
 
   /// Exports [svg] as simple line.
-  String _exportPathSvg({int width: 512, int height: 256, double border: 0.0, Color color, double size}) {
+  String _exportPathSvg(
+    int width,
+    int height,
+    double border,
+    Color color,
+    double size,
+  ) {
     final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
     final bounds = PathUtil.boundsOf(_offsets);
-    final data = PathUtil.fillData(_cubicLines, rect, bound: bounds, border: size + border);
+    final data = PathUtil.fillData(_cubicLines, rect,
+        bound: bounds, border: size + border);
 
     final buffer = StringBuffer();
     buffer.writeln('<?xml version="1.0" encoding="UTF-8" standalone="no"?>');
-    buffer.writeln('<svg width="$width" height="$height" xmlns="http://www.w3.org/2000/svg">');
-    buffer.writeln('<g stroke="${color.hexValue}" fill="none" stroke-width="$size" stroke-linecap="round" stroke-linejoin="round" >');
+    buffer.writeln(
+        '<svg width="$width" height="$height" xmlns="http://www.w3.org/2000/svg">');
+    buffer.writeln(
+        '<g stroke="${color.hexValue}" fill="none" stroke-width="$size" stroke-linecap="round" stroke-linejoin="round" >');
 
     data.forEach((line) {
       buffer.write('<path d="M ${line[0].dx} ${line[0].dy}');
-      line.forEach((path) => buffer.write(' C ${path.cpStart.dx} ${path.cpStart.dy}, ${path.cpEnd.dx} ${path.cpEnd.dy}, ${path.end.dx} ${path.end.dy}'));
+      line.forEach((path) => buffer.write(
+          ' C ${path.cpStart.dx} ${path.cpStart.dy}, ${path.cpEnd.dx} ${path.cpEnd.dy}, ${path.end.dx} ${path.end.dy}'));
       buffer.writeln('" />');
     });
 
@@ -874,23 +927,34 @@ class HandSignatureControl extends ChangeNotifier {
   }
 
   /// Exports [svg] as a lot of arcs.
-  String _exportArcSvg({int width: 512, int height: 256, double border: 0.0, Color color, double size, double maxSize}) {
+  String? _exportArcSvg(
+    int width,
+    int height,
+    double border,
+    Color color,
+    double size,
+    double maxSize,
+  ) {
     final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
     final bounds = PathUtil.boundsOf(_offsets);
-    final data = PathUtil.fill(_arcs, rect, bound: bounds, border: maxSize + border);
+    final data =
+        PathUtil.fill(_arcs, rect, bound: bounds, border: maxSize + border);
 
-    if (data == null) {
+    if (data.isEmpty) {
       return null;
     }
 
     final buffer = StringBuffer();
     buffer.writeln('<?xml version="1.0" encoding="UTF-8" standalone="no"?>');
-    buffer.writeln('<svg width="$width" height="$height" xmlns="http://www.w3.org/2000/svg">');
-    buffer.writeln('<g stroke="${color.hexValue}" fill="none" stroke-linecap="round" stroke-linejoin="round" >');
+    buffer.writeln(
+        '<svg width="$width" height="$height" xmlns="http://www.w3.org/2000/svg">');
+    buffer.writeln(
+        '<g stroke="${color.hexValue}" fill="none" stroke-linecap="round" stroke-linejoin="round" >');
 
     data.forEach((arc) {
       final strokeSize = size + (maxSize - size) * arc.size;
-      buffer.writeln('<path d="M ${arc.dx} ${arc.dy} A 0 0, ${CubicArc._pi2}, 0, 0, ${arc.location.dx} ${arc.location.dy}" stroke-width="$strokeSize" />');
+      buffer.writeln(
+          '<path d="M ${arc.dx} ${arc.dy} A 0 0, ${CubicArc._pi2}, 0, 0, ${arc.location.dx} ${arc.location.dy}" stroke-width="$strokeSize" />');
     });
 
     buffer.writeln('</g>');
@@ -900,24 +964,34 @@ class HandSignatureControl extends ChangeNotifier {
   }
 
   /// Exports [svg] as shape - 4 paths per line. Path is closed and filled with given color.
-  String _exportShapeSvg({int width: 512, int height: 256, double border: 0.0, Color color, double size, double maxSize}) {
+  String? _exportShapeSvg(
+    int width,
+    int height,
+    double border,
+    Color color,
+    double size,
+    double maxSize,
+  ) {
     final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
     final bounds = PathUtil.boundsOf(_offsets);
-    final data = PathUtil.fillData(_cubicLines, rect, bound: bounds, border: maxSize + border);
+    final data = PathUtil.fillData(_cubicLines, rect,
+        bound: bounds, border: maxSize + border);
 
-    if (data == null) {
+    if (data.isEmpty) {
       return null;
     }
 
     final buffer = StringBuffer();
     buffer.writeln('<?xml version="1.0" encoding="UTF-8" standalone="no"?>');
-    buffer.writeln('<svg width="$width" height="$height" xmlns="http://www.w3.org/2000/svg">');
+    buffer.writeln(
+        '<svg width="$width" height="$height" xmlns="http://www.w3.org/2000/svg">');
     buffer.writeln('<g fill="${color.hexValue}">');
 
     data.forEach((lines) {
       if (lines.length == 1 && lines[0].isDot) {
         final dot = lines[0];
-        buffer.writeln('<circle cx="${dot.start.dx}" cy="${dot.start.dy}" r="${dot.startRadius(size, maxSize)}" />');
+        buffer.writeln(
+            '<circle cx="${dot.start.dx}" cy="${dot.start.dy}" r="${dot.startRadius(size, maxSize)}" />');
       } else {
         final firstLine = lines.first;
         final start = firstLine.start + firstLine.cpsUp(size, maxSize);
@@ -932,7 +1006,8 @@ class HandSignatureControl extends ChangeNotifier {
           final cpEnd = line.cpEnd + d2;
           final end = line.end + d2;
 
-          buffer.write(' C ${cpStart.dx} ${cpStart.dy} ${cpEnd.dx} ${cpEnd.dy} ${end.dx} ${end.dy}');
+          buffer.write(
+              ' C ${cpStart.dx} ${cpStart.dy} ${cpEnd.dx} ${cpEnd.dy} ${end.dx} ${end.dy}');
         }
 
         final lastLine = lines.last;
@@ -948,13 +1023,16 @@ class HandSignatureControl extends ChangeNotifier {
           final cpStart = line.cpStart + d4;
           final start = line.start + d4;
 
-          buffer.write(' C ${cpEnd.dx} ${cpEnd.dy} ${cpStart.dx} ${cpStart.dy} ${start.dx} ${start.dy}');
+          buffer.write(
+              ' C ${cpEnd.dx} ${cpEnd.dy} ${cpStart.dx} ${cpStart.dy} ${start.dx} ${start.dy}');
         }
 
         buffer.writeln(' z" />');
 
-        buffer.writeln('<circle cx="${firstLine.start.dx}" cy="${firstLine.start.dy}" r="${firstLine.startRadius(size, maxSize)}" />');
-        buffer.writeln('<circle cx="${lastLine.end.dx}" cy="${lastLine.end.dy}" r="${lastLine.endRadius(size, maxSize)}" />');
+        buffer.writeln(
+            '<circle cx="${firstLine.start.dx}" cy="${firstLine.start.dy}" r="${firstLine.startRadius(size, maxSize)}" />');
+        buffer.writeln(
+            '<circle cx="${lastLine.end.dx}" cy="${lastLine.end.dy}" r="${lastLine.endRadius(size, maxSize)}" />');
       }
     });
 
@@ -965,8 +1043,17 @@ class HandSignatureControl extends ChangeNotifier {
   }
 
   /// Exports data to [Picture].
-  Picture toPicture({int width: 512, int height: 256, Color color, double size, double maxSize, double border}) {
-    final data = PathUtil.fill(_arcs, Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble()), border: border);
+  Picture toPicture(
+      {int width: 512,
+      int height: 256,
+      Color? color,
+      Color? background,
+      double? size,
+      double? maxSize,
+      double? border}) {
+    final data = PathUtil.fill(
+        _arcs, Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble()),
+        border: border);
     final path = CubicPath().._arcs.addAll(data);
 
     params ??= SignaturePaintParams(
@@ -975,9 +1062,9 @@ class HandSignatureControl extends ChangeNotifier {
       maxWidth: 10.0,
     );
 
-    color ??= params.color;
-    size ??= params.width;
-    maxSize ??= params.maxWidth;
+    color ??= params!.color;
+    size ??= params!.width;
+    maxSize ??= params!.maxWidth;
 
     final recorder = PictureRecorder();
     final painter = PathSignaturePainter(
@@ -996,17 +1083,29 @@ class HandSignatureControl extends ChangeNotifier {
       ),
     );
 
+    if (background != null) {
+      canvas.drawColor(background, BlendMode.clear);
+    }
     painter.paint(canvas, Size(width.toDouble(), height.toDouble()));
 
     return recorder.endRecording();
   }
 
   /// Exports data to raw image.
-  Future<ByteData> toImage({int width: 512, int height: 256, Color color, double size, double maxSize, double border, ImageByteFormat format: ImageByteFormat.png}) async {
+  Future<ByteData?> toImage(
+      {int width: 512,
+      int height: 256,
+      Color? color,
+      Color? background,
+      double? size,
+      double? maxSize,
+      double? border,
+      ImageByteFormat format: ImageByteFormat.png}) async {
     final image = await toPicture(
       width: width,
       height: height,
       color: color,
+      background: background,
       size: size,
       maxSize: maxSize,
       border: border,
