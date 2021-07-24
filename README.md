@@ -1,5 +1,5 @@
-A Flutter plugin providing signature pad for drawing smooth signatures. Library is written in pure Dart/Flutter environment to provide support for all platforms..\
-Easy to use library with variety of draw and export settings.
+A Flutter plugin providing Signature Pad for drawing smooth signatures. Library is written in pure Dart/Flutter environment to provide support for all platforms..\
+Easy to use library with variety of draw and export settings. Also supports SVG files.
 
 ![Structure](https://raw.githubusercontent.com/RomanBase/hand_signature/master/doc/signature.png)
 
