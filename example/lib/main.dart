@@ -80,6 +80,7 @@ class MyApp extends StatelessWidget {
 
                                 rawImage.value = await control.toImage(
                                   color: Colors.blueAccent,
+                                  backgroundColor: Colors.greenAccent,
                                 );
                               },
                               child: Text('export'),
@@ -128,7 +129,10 @@ class MyApp extends StatelessWidget {
             } else {
               return Padding(
                 padding: EdgeInsets.all(8.0),
-                child: Image.memory(data.buffer.asUint8List()),
+                child: Image.memory(
+                  data.buffer.asUint8List(),
+                  fit: BoxFit.contain,
+                ),
               );
             }
           },

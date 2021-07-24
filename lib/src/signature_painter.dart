@@ -57,7 +57,7 @@ class PathSignaturePainter extends CustomPainter {
     this.maxWidth: 10.0,
     this.onSize,
     this.type: SignatureDrawType.shape,
-  }) : assert(paths != null);
+  });
 
   @override
   void paint(Canvas canvas, Size size) {

@@ -171,7 +171,7 @@ class PathUtil {
   static List<T> fill<T extends Offset>(List<T> data, Rect rect,
       {Rect? bound, double? border}) {
     bound ??= bounds(data);
-    border ??= 4.0;
+    border ??= 32.0;
 
     final outputSize = rect.size;
     final sourceSize = bound;
@@ -190,7 +190,7 @@ class PathUtil {
     destinationSize = Size(destinationSize.width - border * 2.0,
         destinationSize.height - border * 2.0);
     final borderSize = Offset(rect.width - destinationSize.width,
-            rect.height - destinationSize.height) *
+            rect.height - destinationSize.height - border) *
         0.5;
 
     return translate<T>(

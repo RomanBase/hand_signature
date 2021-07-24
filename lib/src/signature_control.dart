@@ -860,14 +860,15 @@ class HandSignatureControl extends ChangeNotifier {
 
   /// Converts data to [svg] String.
   /// [type] - data structure.
-  String toSvg(
-      {SignatureDrawType type: SignatureDrawType.shape,
-      int width: 512,
-      int height: 256,
-      double border: 0.0,
-      Color? color,
-      double? size,
-      double? maxSize}) {
+  String toSvg({
+    SignatureDrawType type: SignatureDrawType.shape,
+    int width: 512,
+    int height: 256,
+    double border: 0.0,
+    Color? color,
+    double? size,
+    double? maxSize,
+  }) {
     assert(isFilled);
 
     params ??= SignaturePaintParams(
@@ -883,37 +884,41 @@ class HandSignatureControl extends ChangeNotifier {
     switch (type) {
       case SignatureDrawType.line:
         return _exportPathSvg(
-            width: width,
-            height: height,
-            border: border,
-            color: color,
-            size: size);
+          width: width,
+          height: height,
+          border: border,
+          color: color,
+          size: size,
+        );
       case SignatureDrawType.arc:
         return _exportArcSvg(
-            width: width,
-            height: height,
-            border: border,
-            color: color,
-            size: size,
-            maxSize: maxSize);
+          width: width,
+          height: height,
+          border: border,
+          color: color,
+          size: size,
+          maxSize: maxSize,
+        );
       case SignatureDrawType.shape:
         return _exportShapeSvg(
-            width: width,
-            height: height,
-            border: border,
-            color: color,
-            size: size,
-            maxSize: maxSize);
+          width: width,
+          height: height,
+          border: border,
+          color: color,
+          size: size,
+          maxSize: maxSize,
+        );
     }
   }
 
   /// Exports [svg] as simple line.
-  String _exportPathSvg(
-      {int width: 512,
-      int height: 256,
-      double border: 0.0,
-      required Color color,
-      required double size}) {
+  String _exportPathSvg({
+    int width: 512,
+    int height: 256,
+    double border: 0.0,
+    required Color color,
+    required double size,
+  }) {
     final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
     final bounds = PathUtil.boundsOf(_offsets);
     final data = PathUtil.fillData(_cubicLines, rect,
@@ -940,13 +945,14 @@ class HandSignatureControl extends ChangeNotifier {
   }
 
   /// Exports [svg] as a lot of arcs.
-  String _exportArcSvg(
-      {int width: 512,
-      int height: 256,
-      double border: 0.0,
-      Color? color,
-      double? size,
-      required double maxSize}) {
+  String _exportArcSvg({
+    int width: 512,
+    int height: 256,
+    double border: 0.0,
+    Color? color,
+    double? size,
+    required double maxSize,
+  }) {
     final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
     final bounds = PathUtil.boundsOf(_offsets);
     final data =
@@ -972,13 +978,14 @@ class HandSignatureControl extends ChangeNotifier {
   }
 
   /// Exports [svg] as shape - 4 paths per line. Path is closed and filled with given color.
-  String _exportShapeSvg(
-      {int width: 512,
-      int height: 256,
-      double border: 0.0,
-      Color? color,
-      double? size,
-      required double maxSize}) {
+  String _exportShapeSvg({
+    int width: 512,
+    int height: 256,
+    double border: 0.0,
+    Color? color,
+    double? size,
+    required double maxSize,
+  }) {
     final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
     final bounds = PathUtil.boundsOf(_offsets);
     final data = PathUtil.fillData(_cubicLines, rect,
@@ -1046,13 +1053,15 @@ class HandSignatureControl extends ChangeNotifier {
   }
 
   /// Exports data to [Picture].
-  Picture toPicture(
-      {int width: 512,
-      int height: 256,
-      Color? color,
-      double? size,
-      double? maxSize,
-      double? border}) {
+  Picture toPicture({
+    int width: 512,
+    int height: 256,
+    Color? color,
+    Color? backgroundColor,
+    double? size,
+    double? maxSize,
+    double? border,
+  }) {
     assert(isFilled);
 
     final data = PathUtil.fill(
@@ -1087,26 +1096,33 @@ class HandSignatureControl extends ChangeNotifier {
       ),
     );
 
+    if (backgroundColor != null) {
+      canvas.drawColor(backgroundColor, BlendMode.src);
+    }
+
     painter.paint(canvas, Size(width.toDouble(), height.toDouble()));
 
     return recorder.endRecording();
   }
 
   /// Exports data to raw image as [ByteData].
-  Future<ByteData?> toImage(
-      {int width: 512,
-      int height: 256,
-      Color? color,
-      double? size,
-      double? maxSize,
-      double? border,
-      ImageByteFormat format: ImageByteFormat.png}) async {
+  Future<ByteData?> toImage({
+    int width: 512,
+    int height: 256,
+    Color? color,
+    Color? backgroundColor,
+    double? size,
+    double? maxSize,
+    double? border,
+    ImageByteFormat format: ImageByteFormat.png,
+  }) async {
     assert(isFilled);
 
     final image = await toPicture(
       width: width,
       height: height,
       color: color,
+      backgroundColor: backgroundColor,
       size: size,
       maxSize: maxSize,
       border: border,
@@ -1116,18 +1132,21 @@ class HandSignatureControl extends ChangeNotifier {
   }
 
   /// Exports data to raw image.
-  Future<Uint8List?> toRaw(
-      {int width: 512,
-      int height: 256,
-      Color? color,
-      double? size,
-      double? maxSize,
-      double? border,
-      ImageByteFormat format: ImageByteFormat.png}) async {
+  Future<Uint8List?> toRaw({
+    int width: 512,
+    int height: 256,
+    Color? color,
+    Color? backgroundColor,
+    double? size,
+    double? maxSize,
+    double? border,
+    ImageByteFormat format: ImageByteFormat.png,
+  }) async {
     final data = await toImage(
       width: width,
       height: height,
       color: color,
+      backgroundColor: backgroundColor,
       size: size,
       maxSize: maxSize,
       border: border,
