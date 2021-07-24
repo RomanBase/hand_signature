@@ -1,10 +1,11 @@
 ## [2.1.0] - Custom Gesture Recognizer
-Simple `GestureRecognizer` based on `OneSequenceGestureRecognizer` that allows just one pointer and handles all pointer updates.
+New `GestureRecognizer` based on `OneSequenceGestureRecognizer` that allows just one pointer and handles all pointer updates.
+All previous Recognizers have been removed.
 ## [2.0.0] - Nullsafety
+Minimum Dart SDK 2.12.0
 ## [0.6.3] - Scroll
 Added `TapGestureDetector` and current `PanGestureDetector` has been modified to support drawing in `ScrollView`.\
 Also pointer callbacks are now exposed to detect **start** and **end** of drawing.
-## [0.6.2] - Documentation and bug fixes
 ## [0.6.1] - Shape, Arc, Line
 Draw line as single shape (huge performance update).\
 Selection of 3 draw styles (shape, arc, line). Arc is still nicest, but has performance issues..\
