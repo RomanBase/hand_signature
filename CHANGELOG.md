@@ -1,3 +1,6 @@
+## [2.1.0] - Custom Gesture Recognizer
+Simple `GestureRecognizer` based on `OneSequenceGestureRecognizer` that allows just one pointer and handles all pointer updates.
+## [2.0.0] - Nullsafety
 ## [0.6.3] - Scroll
 Added `TapGestureDetector` and current `PanGestureDetector` has been modified to support drawing in `ScrollView`.\
 Also pointer callbacks are now exposed to detect **start** and **end** of drawing.
