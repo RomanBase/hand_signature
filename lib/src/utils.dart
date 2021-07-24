@@ -190,7 +190,7 @@ class PathUtil {
     destinationSize = Size(destinationSize.width - border * 2.0,
         destinationSize.height - border * 2.0);
     final borderSize = Offset(rect.width - destinationSize.width,
-            rect.height - destinationSize.height) *
+            rect.height - destinationSize.height - border) *
         0.5;
 
     return translate<T>(

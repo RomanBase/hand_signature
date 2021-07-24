@@ -14,9 +14,9 @@ HandSignatureControl control = new HandSignatureControl(
   velocityRange: 2.0,
 );
 
-ValueNotifier<String> svg = ValueNotifier<String>(null);
+ValueNotifier<String?> svg = ValueNotifier<String?>(null);
 
-ValueNotifier<ByteData> rawImage = ValueNotifier<ByteData>(null);
+ValueNotifier<ByteData?> rawImage = ValueNotifier<ByteData?>(null);
 
 class MyApp extends StatelessWidget {
   bool get scrollTest => false;
@@ -82,7 +82,7 @@ class MyApp extends StatelessWidget {
 
                                 rawImage.value = await control.toImage(
                                   color: Colors.blueAccent,
-                                  background: Colors.grey,
+                                  background: Colors.greenAccent,
                                 );
                               },
                               child: Text('export'),
@@ -118,7 +118,7 @@ class MyApp extends StatelessWidget {
           border: Border.all(),
           color: Colors.white30,
         ),
-        child: ValueListenableBuilder<ByteData>(
+        child: ValueListenableBuilder<ByteData?>(
           valueListenable: rawImage,
           builder: (context, data, child) {
             if (data == null) {
@@ -145,7 +145,7 @@ class MyApp extends StatelessWidget {
           border: Border.all(),
           color: Colors.white30,
         ),
-        child: ValueListenableBuilder<String>(
+        child: ValueListenableBuilder<String?>(
           valueListenable: svg,
           builder: (context, data, child) {
             return HandSignatureView.svg(

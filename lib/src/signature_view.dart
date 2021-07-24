@@ -128,7 +128,7 @@ class HandSignatureView extends StatelessWidget {
   /// Draws [Path] based on [svg] data.
   static _HandSignatureViewSvg svg({
     Key? key,
-    required String data,
+    required String? data,
     Color? color,
     double Function(double width)? strokeWidth,
     EdgeInsets? padding,
