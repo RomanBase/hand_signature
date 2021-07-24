@@ -113,7 +113,7 @@ class HandSignatureView extends StatelessWidget {
   /// Draws [Path] based on [svg] data.
   static _HandSignatureViewSvg svg({
     Key? key,
-    required String data,
+    required String? data,
     Color? color,
     double Function(double width)? strokeWidth,
     EdgeInsets? padding,
@@ -156,7 +156,7 @@ class HandSignatureView extends StatelessWidget {
 
 /// Parses [svg] to [Drawable] and pains [DrawableSignaturePainter].
 class _HandSignatureViewSvg extends StatefulWidget {
-  final String data;
+  final String? data;
   final Color? color;
   final double Function(double width)? strokeWidth;
   final EdgeInsets? padding;
