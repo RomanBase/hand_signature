@@ -41,22 +41,18 @@ class HandSignaturePainterView extends StatelessWidget {
     this.onPointerUp,
   }) : super(key: key);
 
-  void _startPath(_SinglePanGestureRecognizer? instance, Offset point) {
-    instance?.isDown = true;
-
+  void _startPath(Offset point) {
     if (!control.hasActivePath) {
       onPointerDown?.call();
       control.startPath(point);
     }
   }
 
-  void _endPath(_SinglePanGestureRecognizer? instance) {
+  void _endPath(Offset point) {
     if (control.hasActivePath) {
       control.closePath();
       onPointerUp?.call();
     }
-
-    instance?.isDown = false;
   }
 
   @override
@@ -64,24 +60,13 @@ class HandSignaturePainterView extends StatelessWidget {
     return ClipRRect(
       child: RawGestureDetector(
         gestures: <Type, GestureRecognizerFactory>{
-          TapGestureRecognizer:
-              GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
-            () => TapGestureRecognizer(debugOwner: this),
+          _SingleGestureRecognizer:
+              GestureRecognizerFactoryWithHandlers<_SingleGestureRecognizer>(
+            () => _SingleGestureRecognizer(debugOwner: this),
             (instance) {
-              instance.onTapDown =
-                  (args) => _startPath(null, args.localPosition);
-              instance.onTapUp = (args) => _endPath(null);
-            },
-          ),
-          _SinglePanGestureRecognizer:
-              GestureRecognizerFactoryWithHandlers<_SinglePanGestureRecognizer>(
-            () => _SinglePanGestureRecognizer(debugOwner: this),
-            (instance) {
-              instance.onStart =
-                  (args) => _startPath(instance, args.localPosition);
-              instance.onUpdate =
-                  (args) => control.alterPath(args.localPosition);
-              instance.onEnd = (args) => _endPath(instance);
+              instance.onStart = (position) => _startPath(position);
+              instance.onUpdate = (position) => control.alterPath(position);
+              instance.onEnd = (position) => _endPath(position);
             },
           ),
         },
@@ -202,7 +187,7 @@ class _HandSignatureViewSvgState extends State<_HandSignatureViewSvg> {
   }
 
   void _parseData(String? data) async {
-    if (data == null) {
+    if (data == null || data.isEmpty) {
       drawable = null;
     } else {
       try {
@@ -241,31 +226,50 @@ class _HandSignatureViewSvgState extends State<_HandSignatureViewSvg> {
       );
 }
 
-/// Custom [PanGestureRecognizer] that handles just one input touch.
-/// Don't allow multi touch.
-class _SinglePanGestureRecognizer extends PanGestureRecognizer {
-  _SinglePanGestureRecognizer({Object? debugOwner})
-      : super(debugOwner: debugOwner);
+/// [GestureRecognizer] that allows just one input pointer.
+class _SingleGestureRecognizer extends OneSequenceGestureRecognizer {
+  @override
+  String get debugDescription => 'single_gesture_recognizer';
 
-  bool isDown = false;
+  ValueChanged<Offset>? onStart;
+  ValueChanged<Offset>? onUpdate;
+  ValueChanged<Offset>? onEnd;
+
+  bool pointerActive = false;
+
+  _SingleGestureRecognizer({
+    Object? debugOwner,
+    PointerDeviceKind? kind,
+  }) : super(
+          debugOwner: debugOwner,
+          kind: kind,
+        );
 
   @override
-  void addAllowedPointer(PointerEvent event) {
-    if (isDown) {
+  void addAllowedPointer(PointerDownEvent event) {
+    if (pointerActive) {
       return;
     }
 
-    //isDown = true;
-    super.addAllowedPointer(event);
+    startTrackingPointer(event.pointer, event.transform);
   }
 
-/*
   @override
   void handleEvent(PointerEvent event) {
-    super.handleEvent(event);
-
-    if (!event.down) {
-      isDown = false;
+    if (event is PointerMoveEvent) {
+      onUpdate?.call(event.localPosition);
+    } else if (event is PointerDownEvent) {
+      pointerActive = true;
+      onStart?.call(event.localPosition);
+    } else if (event is PointerUpEvent) {
+      pointerActive = false;
+      onEnd?.call(event.localPosition);
+    } else if (event is PointerCancelEvent) {
+      pointerActive = false;
+      onEnd?.call(event.localPosition);
     }
-  }*/
+  }
+
+  @override
+  void didStopTrackingLastPointer(int pointer) {}
 }

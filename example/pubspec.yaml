@@ -21,7 +21,6 @@ dependencies:
   flutter:
     sdk: flutter
 
-
   hand_signature:
     path: ../
 
