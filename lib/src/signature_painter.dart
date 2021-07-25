@@ -77,7 +77,9 @@ class PathSignaturePainter extends CustomPainter {
         final paint = strokePaint;
 
         paths.forEach((path) {
-          canvas.drawPath(PathUtil.toLinePath(path.lines), paint);
+          if (path.isFilled) {
+            canvas.drawPath(PathUtil.toLinePath(path.lines), paint);
+          }
         });
         break;
       case SignatureDrawType.arc:
