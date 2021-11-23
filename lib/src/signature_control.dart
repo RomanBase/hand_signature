@@ -1043,17 +1043,23 @@ class HandSignatureControl extends ChangeNotifier {
   }
 
   /// Exports data to [Picture].
-  Picture toPicture(
-      {int width: 512,
-      int height: 256,
-      Color? color,
-      Color? background,
-      double? size,
-      double? maxSize,
-      double? border}) {
-    final data = PathUtil.fill(
-        _arcs, Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble()),
-        border: border);
+  Picture toPicture({
+    int width: 512,
+    int height: 256,
+    Color? color,
+    Color? background,
+    double? size,
+    double? maxSize,
+    double? border,
+    bool scaleToFill = true,
+  }) {
+    final data = scaleToFill
+        ? PathUtil.fill(
+            _arcs,
+            Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble()),
+            border: border,
+          )
+        : _arcs;
     final path = CubicPath().._arcs.addAll(data);
 
     params ??= SignaturePaintParams(
@@ -1092,15 +1098,17 @@ class HandSignatureControl extends ChangeNotifier {
   }
 
   /// Exports data to raw image.
-  Future<ByteData?> toImage(
-      {int width: 512,
-      int height: 256,
-      Color? color,
-      Color? background,
-      double? size,
-      double? maxSize,
-      double? border,
-      ImageByteFormat format: ImageByteFormat.png}) async {
+  Future<ByteData?> toImage({
+    int width: 512,
+    int height: 256,
+    Color? color,
+    Color? background,
+    double? size,
+    double? maxSize,
+    double? border,
+    ImageByteFormat format: ImageByteFormat.png,
+    bool scaleToFill = true,
+  }) async {
     final image = await toPicture(
       width: width,
       height: height,
@@ -1109,6 +1117,7 @@ class HandSignatureControl extends ChangeNotifier {
       size: size,
       maxSize: maxSize,
       border: border,
+      scaleToFill: scaleToFill,
     ).toImage(width, height);
 
     return image.toByteData(format: format);
