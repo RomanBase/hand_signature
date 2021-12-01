@@ -1057,13 +1057,16 @@ class HandSignatureControl extends ChangeNotifier {
     double? border,
     bool scaleToFill = true,
   }) {
+    final pictureRect = Rect.fromLTRB(
+      0.0,
+      0.0,
+      width.toDouble(),
+      height.toDouble(),
+    );
+    final canvasRect = Rect.fromLTRB(0, 0, _areaSize.width, _areaSize.height);
     final data = scaleToFill
-        ? PathUtil.fill(
-            _arcs,
-            Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble()),
-            border: border,
-          )
-        : _arcs;
+        ? PathUtil.fill(_arcs, pictureRect, border: border)
+        : PathUtil.fill(_arcs, pictureRect, bound: canvasRect, border: border);
     final path = CubicPath().._arcs.addAll(data);
 
     params ??= SignaturePaintParams(
