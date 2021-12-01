@@ -18,7 +18,7 @@ ValueNotifier<String?> svg = ValueNotifier<String?>(null);
 
 ValueNotifier<ByteData?> rawImage = ValueNotifier<ByteData?>(null);
 
-ValueNotifier<ByteData?> scaledRawImage = ValueNotifier<ByteData?>(null);
+ValueNotifier<ByteData?> rawImageFit = ValueNotifier<ByteData?>(null);
 
 class MyApp extends StatelessWidget {
   bool get scrollTest => false;
@@ -74,7 +74,7 @@ class MyApp extends StatelessWidget {
                                 control.clear();
                                 svg.value = null;
                                 rawImage.value = null;
-                                scaledRawImage.value = null;
+                                rawImageFit.value = null;
                               },
                               child: Text('clear'),
                             ),
@@ -90,13 +90,12 @@ class MyApp extends StatelessWidget {
                                 rawImage.value = await control.toImage(
                                   color: Colors.blueAccent,
                                   background: Colors.greenAccent,
-                                  scaleToFill: false,
+                                  fit: false,
                                 );
 
-                                scaledRawImage.value = await control.toImage(
+                                rawImageFit.value = await control.toImage(
                                   color: Colors.blueAccent,
                                   background: Colors.greenAccent,
-                                  scaleToFill: true,
                                 );
                               },
                               child: Text('export'),
@@ -161,7 +160,7 @@ class MyApp extends StatelessWidget {
           color: Colors.white30,
         ),
         child: ValueListenableBuilder<ByteData?>(
-          valueListenable: scaledRawImage,
+          valueListenable: rawImageFit,
           builder: (context, data, child) {
             if (data == null) {
               return Container(

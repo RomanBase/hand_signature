@@ -1038,7 +1038,7 @@ class HandSignatureControl extends ChangeNotifier {
 
   /// Exports data to [Picture].
   ///
-  /// If [scaleToFill] is enabled, the path will be scaled to fill the image bounds, trimming transparent areas outside.
+  /// If [fit] is enabled, the path will be normalized and scaled to fit given [width] and [height].
   Picture? toPicture({
     int width: 512,
     int height: 256,
@@ -1047,8 +1047,12 @@ class HandSignatureControl extends ChangeNotifier {
     double? size,
     double? maxSize,
     double? border,
-    bool scaleToFill = true,
+    bool fit: true,
   }) {
+    if (!isFilled) {
+      return null;
+    }
+
     final pictureRect = Rect.fromLTRB(
       0.0,
       0.0,
@@ -1056,12 +1060,8 @@ class HandSignatureControl extends ChangeNotifier {
       height.toDouble(),
     );
 
-    if (!isFilled) {
-      return null;
-    }
-
     final canvasRect = Rect.fromLTRB(0, 0, _areaSize.width, _areaSize.height);
-    final data = scaleToFill
+    final data = fit
         ? PathUtil.fill(_arcs, pictureRect, border: border)
         : PathUtil.fill(_arcs, pictureRect, bound: canvasRect, border: border);
     final path = CubicPath().._arcs.addAll(data);
@@ -1104,7 +1104,7 @@ class HandSignatureControl extends ChangeNotifier {
 
   /// Exports data to raw image.
   ///
-  /// If [scaleToFill] is enabled, the path will be scaled to fill the image bounds, trimming transparent areas outside.
+  /// If [fit] is enabled, the path will be normalized and scaled to fit given [width] and [height].
   Future<ByteData?> toImage({
     int width: 512,
     int height: 256,
@@ -1114,7 +1114,7 @@ class HandSignatureControl extends ChangeNotifier {
     double? maxSize,
     double? border,
     ImageByteFormat format: ImageByteFormat.png,
-    bool scaleToFill = true,
+    bool fit: true,
   }) async {
     final image = await toPicture(
       width: width,
@@ -1124,7 +1124,7 @@ class HandSignatureControl extends ChangeNotifier {
       size: size,
       maxSize: maxSize,
       border: border,
-      scaleToFill: scaleToFill,
+      fit: fit,
     )?.toImage(width, height);
 
     if (image == null) {

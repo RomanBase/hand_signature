@@ -1,3 +1,5 @@
+## [2.1.1] - Ability to export exact image
+toPicture and toImage now contains **fit** property.
 ## [2.1.0] - Custom Gesture Recognizer
 New `GestureRecognizer` based on `OneSequenceGestureRecognizer` that allows just one pointer and handles all pointer updates.
 All previous Recognizers have been removed.
