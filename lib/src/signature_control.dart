@@ -666,13 +666,15 @@ class CubicPath {
       return;
     }
 
-    final arcData = PathUtil.scale(_arcs, ratio);
-    _arcs.clear();
-    _arcs.addAll(arcData.cast<CubicArc>());
+    final arcData = PathUtil.scale<CubicArc>(_arcs, ratio);
+    _arcs
+      ..clear()
+      ..addAll(arcData);
 
-    final lineData = PathUtil.scale(_lines, ratio);
-    _lines.clear();
-    _lines.addAll(lineData.cast<CubicLine>());
+    final lineData = PathUtil.scale<CubicLine>(_lines, ratio);
+    _lines
+      ..clear()
+      ..addAll(lineData);
   }
 
   /// Clears all path data-.
