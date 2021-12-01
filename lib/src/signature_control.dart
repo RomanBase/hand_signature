@@ -1043,6 +1043,8 @@ class HandSignatureControl extends ChangeNotifier {
   }
 
   /// Exports data to [Picture].
+  ///
+  /// If [scaleToFill] is enabled, the path will be scaled to fill the image bounds, trimming transparent areas outside.
   Picture toPicture({
     int width: 512,
     int height: 256,
@@ -1098,6 +1100,8 @@ class HandSignatureControl extends ChangeNotifier {
   }
 
   /// Exports data to raw image.
+  ///
+  /// If [scaleToFill] is enabled, the path will be scaled to fill the image bounds, trimming transparent areas outside.
   Future<ByteData?> toImage({
     int width: 512,
     int height: 256,
