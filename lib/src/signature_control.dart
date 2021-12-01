@@ -404,7 +404,7 @@ class CubicArc extends Offset {
   Offset scale(double scaleX, double scaleY) => CubicArc(
         start: Offset(dx * scaleX, dy * scaleY),
         location: location.scale(scaleX, scaleY),
-        size: size,
+        size: size * (scaleX + scaleY) * 0.5,
       );
 }
 
