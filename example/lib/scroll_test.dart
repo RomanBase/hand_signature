@@ -35,7 +35,7 @@ class _ScrollTestState extends State<ScrollTest> {
               type: SignatureDrawType.shape,
               onPointerDown: () {
                 setState(() {
-                  scrollEnabled = false;
+                  scrollEnabled = true;
                 });
               },
               onPointerUp: () {
