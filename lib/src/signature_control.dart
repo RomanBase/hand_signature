@@ -173,8 +173,8 @@ class CubicLine extends Offset {
         end: end.scale(scaleX, scaleY),
         upStartVector: _upStartVector,
         upEndVector: _upEndVector,
-        startSize: startSize,
-        endSize: endSize,
+        startSize: startSize * (scaleX + scaleY) * 0.5,
+        endSize: endSize * (scaleX + scaleY) * 0.5,
       );
 
   @override
