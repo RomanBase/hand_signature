@@ -18,6 +18,8 @@ ValueNotifier<String?> svg = ValueNotifier<String?>(null);
 
 ValueNotifier<ByteData?> rawImage = ValueNotifier<ByteData?>(null);
 
+ValueNotifier<ByteData?> scaledRawImage = ValueNotifier<ByteData?>(null);
+
 class MyApp extends StatelessWidget {
   bool get scrollTest => false;
 
@@ -68,7 +70,12 @@ class MyApp extends StatelessWidget {
                         Row(
                           children: <Widget>[
                             CupertinoButton(
-                              onPressed: control.clear,
+                              onPressed: () {
+                                control.clear();
+                                svg.value = null;
+                                rawImage.value = null;
+                                scaledRawImage.value = null;
+                              },
                               child: Text('clear'),
                             ),
                             CupertinoButton(
@@ -83,6 +90,13 @@ class MyApp extends StatelessWidget {
                                 rawImage.value = await control.toImage(
                                   color: Colors.blueAccent,
                                   background: Colors.greenAccent,
+                                  scaleToFill: false,
+                                );
+
+                                scaledRawImage.value = await control.toImage(
+                                  color: Colors.blueAccent,
+                                  background: Colors.greenAccent,
+                                  scaleToFill: true,
                                 );
                               },
                               child: Text('export'),
@@ -100,6 +114,7 @@ class MyApp extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
                           _buildImageView(),
+                          _buildScaledImageView(),
                           _buildSvgView(),
                         ],
                       ),
@@ -125,7 +140,34 @@ class MyApp extends StatelessWidget {
               return Container(
                 color: Colors.red,
                 child: Center(
-                  child: Text('not signed yet (png)'),
+                  child: Text('not signed yet (png)\nscaleToFill: false'),
+                ),
+              );
+            } else {
+              return Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Image.memory(data.buffer.asUint8List()),
+              );
+            }
+          },
+        ),
+      );
+
+  Widget _buildScaledImageView() => Container(
+        width: 192.0,
+        height: 96.0,
+        decoration: BoxDecoration(
+          border: Border.all(),
+          color: Colors.white30,
+        ),
+        child: ValueListenableBuilder<ByteData?>(
+          valueListenable: scaledRawImage,
+          builder: (context, data, child) {
+            if (data == null) {
+              return Container(
+                color: Colors.red,
+                child: Center(
+                  child: Text('not signed yet (png)\nscaleToFill: true'),
                 ),
               );
             } else {

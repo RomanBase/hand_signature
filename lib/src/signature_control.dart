@@ -173,8 +173,8 @@ class CubicLine extends Offset {
         end: end.scale(scaleX, scaleY),
         upStartVector: _upStartVector,
         upEndVector: _upEndVector,
-        startSize: startSize,
-        endSize: endSize,
+        startSize: startSize * (scaleX + scaleY) * 0.5,
+        endSize: endSize * (scaleX + scaleY) * 0.5,
       );
 
   @override
@@ -404,7 +404,7 @@ class CubicArc extends Offset {
   Offset scale(double scaleX, double scaleY) => CubicArc(
         start: Offset(dx * scaleX, dy * scaleY),
         location: location.scale(scaleX, scaleY),
-        size: size,
+        size: size * (scaleX + scaleY) * 0.5,
       );
 }
 
@@ -666,13 +666,15 @@ class CubicPath {
       return;
     }
 
-    final arcData = PathUtil.scale(_arcs, ratio);
-    _arcs.clear();
-    _arcs.addAll(arcData.cast<CubicArc>());
+    final arcData = PathUtil.scale<CubicArc>(_arcs, ratio);
+    _arcs
+      ..clear()
+      ..addAll(arcData);
 
-    final lineData = PathUtil.scale(_lines, ratio);
-    _lines.clear();
-    _lines.addAll(lineData.cast<CubicLine>());
+    final lineData = PathUtil.scale<CubicLine>(_lines, ratio);
+    _lines
+      ..clear()
+      ..addAll(lineData);
   }
 
   /// Clears all path data-.
@@ -1043,17 +1045,28 @@ class HandSignatureControl extends ChangeNotifier {
   }
 
   /// Exports data to [Picture].
-  Picture toPicture(
-      {int width: 512,
-      int height: 256,
-      Color? color,
-      Color? background,
-      double? size,
-      double? maxSize,
-      double? border}) {
-    final data = PathUtil.fill(
-        _arcs, Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble()),
-        border: border);
+  ///
+  /// If [scaleToFill] is enabled, the path will be scaled to fill the image bounds, trimming transparent areas outside.
+  Picture toPicture({
+    int width: 512,
+    int height: 256,
+    Color? color,
+    Color? background,
+    double? size,
+    double? maxSize,
+    double? border,
+    bool scaleToFill = true,
+  }) {
+    final pictureRect = Rect.fromLTRB(
+      0.0,
+      0.0,
+      width.toDouble(),
+      height.toDouble(),
+    );
+    final canvasRect = Rect.fromLTRB(0, 0, _areaSize.width, _areaSize.height);
+    final data = scaleToFill
+        ? PathUtil.fill(_arcs, pictureRect, border: border)
+        : PathUtil.fill(_arcs, pictureRect, bound: canvasRect, border: border);
     final path = CubicPath().._arcs.addAll(data);
 
     params ??= SignaturePaintParams(
@@ -1092,15 +1105,19 @@ class HandSignatureControl extends ChangeNotifier {
   }
 
   /// Exports data to raw image.
-  Future<ByteData?> toImage(
-      {int width: 512,
-      int height: 256,
-      Color? color,
-      Color? background,
-      double? size,
-      double? maxSize,
-      double? border,
-      ImageByteFormat format: ImageByteFormat.png}) async {
+  ///
+  /// If [scaleToFill] is enabled, the path will be scaled to fill the image bounds, trimming transparent areas outside.
+  Future<ByteData?> toImage({
+    int width: 512,
+    int height: 256,
+    Color? color,
+    Color? background,
+    double? size,
+    double? maxSize,
+    double? border,
+    ImageByteFormat format: ImageByteFormat.png,
+    bool scaleToFill = true,
+  }) async {
     final image = await toPicture(
       width: width,
       height: height,
@@ -1109,6 +1126,7 @@ class HandSignatureControl extends ChangeNotifier {
       size: size,
       maxSize: maxSize,
       border: border,
+      scaleToFill: scaleToFill,
     ).toImage(width, height);
 
     return image.toByteData(format: format);
