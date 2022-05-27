@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -45,6 +44,11 @@ extension OffsetEx on Offset {
   Offset rotateAround(Offset center, double radians) {
     return (this - center).rotate(radians) + center;
   }
+
+  Map<String, dynamic> get toMap => {
+        'dx': dx,
+        'dy': dy,
+      };
 }
 
 extension PathEx on Path {
@@ -64,6 +68,16 @@ extension SizeExt on Size {
     );
 
     return this * scale;
+  }
+}
+
+extension DoubleExt on double {
+  double asFixed(int? fractionDigits) {
+    if (fractionDigits == null) return this;
+
+    final divident = pow(10, fractionDigits).toInt();
+
+    return (this * divident).toInt() / divident;
   }
 }
 
@@ -385,4 +399,9 @@ class PathUtil {
 
     return path;
   }
+
+  static Offset offsetFromMap(Map<String, dynamic> map) => Offset(
+        map['dx'],
+        map['dy'],
+      );
 }

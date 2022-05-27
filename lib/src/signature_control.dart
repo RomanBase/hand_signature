@@ -7,6 +7,9 @@ import 'package:flutter/material.dart';
 import '../signature.dart';
 import 'utils.dart';
 
+// Number of digits after the dot for doubles
+int? _fractionDigits;
+
 /// Paint settings.
 class SignaturePaintParams {
   /// Color of line.
@@ -53,6 +56,18 @@ class OffsetPoint extends Offset {
         dy: offset.dy,
         timestamp: DateTime.now().millisecondsSinceEpoch,
       );
+
+  factory OffsetPoint._fromMap(Map<String, dynamic> map) => OffsetPoint(
+        dx: map['dx'],
+        dy: map['dy'],
+        timestamp: map['timestamp'],
+      );
+
+  Map<String, dynamic> get _toMap => {
+        'dx': dx.asFixed(_fractionDigits),
+        'dy': dy.asFixed(_fractionDigits),
+        'timestamp': timestamp,
+      };
 
   /// Returns velocity between this and [other] - previous point.
   double velocityFrom(OffsetPoint other) => timestamp != other.timestamp
@@ -163,6 +178,28 @@ class CubicLine extends Offset {
     _velocity = end.velocityFrom(start);
     _distance = start.distanceTo(end);
   }
+
+  factory CubicLine._fromMap(Map<String, dynamic> map) => CubicLine(
+        start: OffsetPoint._fromMap(map['start']),
+        cpStart: PathUtil.offsetFromMap(map['cpStart']),
+        cpEnd: PathUtil.offsetFromMap(map['cpEnd']),
+        end: OffsetPoint._fromMap(map['end']),
+        upStartVector: PathUtil.offsetFromMap(map['upStartVector']),
+        upEndVector: PathUtil.offsetFromMap(map['upEndVector']),
+        startSize: map['startSize'],
+        endSize: map['endSize'],
+      );
+
+  Map<String, dynamic> get _toMap => {
+        'start': start._toMap,
+        'cpStart': cpStart.toMap,
+        'cpEnd': cpEnd.toMap,
+        'end': end._toMap,
+        'upStartVector': upStartVector.toMap,
+        'upEndVector': upEndVector.toMap,
+        'startSize': startSize,
+        'endSize': endSize,
+      };
 
   @override
   CubicLine scale(double scaleX, double scaleY) => CubicLine(
@@ -392,6 +429,22 @@ class CubicArc extends Offset {
     this.size: 1.0,
   }) : super(start.dx, start.dy);
 
+  factory CubicArc._fromMap(Map<String, dynamic> map) => CubicArc(
+        start: Offset(
+          map['dx'],
+          map['dy'],
+        ),
+        location: PathUtil.offsetFromMap(map['location']),
+        size: map['size'],
+      );
+
+  Map<String, dynamic> get _toMap => {
+        'dx': dx.asFixed(_fractionDigits),
+        'dy': dy.asFixed(_fractionDigits),
+        'location': location.toMap,
+        'size': size,
+      };
+
   @override
   Offset translate(double translateX, double translateY) => CubicArc(
         start: Offset(dx + translateX, dy + translateY),
@@ -410,13 +463,13 @@ class CubicArc extends Offset {
 /// Combines sequence of points into one Line.
 class CubicPath {
   /// Raw data.
-  final _points = <OffsetPoint>[];
+  final List<OffsetPoint> _points;
 
   /// [CubicLine] representation of path.
-  final _lines = <CubicLine>[];
+  final List<CubicLine> _lines;
 
   /// [CubicArc] representation of path.
-  final _arcs = <CubicArc>[];
+  final List<CubicArc> _arcs;
 
   /// Returns raw data of path.
   List<OffsetPoint> get points => _points;
@@ -453,14 +506,14 @@ class CubicPath {
   double _currentSize = 0.0;
 
   /// Distance between two control points.
-  final threshold;
+  final double threshold;
 
   /// Ratio of line smoothing.
   /// Don't have impact to performance. Values between 0 - 1.
   /// [0] - no smoothing, no flattening.
   /// [1] - best smoothing, but flattened.
   /// Best results are between: 0.5 - 0.85.
-  final smoothRatio;
+  final double smoothRatio;
 
   /// Checks if this Line is just dot.
   bool get isDot => lines.length == 1 && lines[0].isDot;
@@ -471,7 +524,38 @@ class CubicPath {
   CubicPath({
     this.threshold: 3.0,
     this.smoothRatio: 0.65,
-  });
+  })  : _points = [],
+        _arcs = [],
+        _lines = [];
+
+  CubicPath._(
+    this.smoothRatio,
+    this.threshold,
+    this.maxVelocity,
+    List<OffsetPoint> points,
+    List<CubicLine> lines,
+    List<CubicArc> arcs,
+  )   : _points = points,
+        _lines = lines,
+        _arcs = arcs;
+
+  factory CubicPath._fromMap(Map<String, dynamic> map) => CubicPath._(
+        map['smoothRatio'],
+        map['threshold'],
+        map['maxVelocity'],
+        (map['points'] as List).map((e) => OffsetPoint._fromMap(e)).toList(),
+        (map['lines'] as List).map((e) => CubicLine._fromMap(e)).toList(),
+        (map['arcs'] as List).map((e) => CubicArc._fromMap(e)).toList(),
+      );
+
+  Map<String, dynamic> get _toMap => {
+        'smoothRatio': smoothRatio,
+        'threshold': threshold,
+        'maxVelocity': maxVelocity,
+        'points': _points.map((e) => e._toMap).toList(),
+        'lines': _lines.map((e) => e._toMap).toList(),
+        'arcs': _arcs.map((e) => e._toMap).toList(),
+      };
 
   /// Adds line to path.
   void _addLine(CubicLine line) {
@@ -688,7 +772,7 @@ class CubicPath {
 /// Also handles export of finished signature.
 class HandSignatureControl extends ChangeNotifier {
   /// List of active paths.
-  final _paths = <CubicPath>[];
+  final List<CubicPath> _paths;
 
   /// List of currently completed lines.
   List<CubicPath> get paths => _paths;
@@ -758,9 +842,36 @@ class HandSignatureControl extends ChangeNotifier {
     this.threshold: 3.0,
     this.smoothRatio: 0.65,
     this.velocityRange: 2.0,
-  })  : assert(threshold > 0.0),
+  })  : _paths = [],
+        assert(threshold > 0.0),
         assert(smoothRatio > 0.0),
         assert(velocityRange > 0.0);
+
+  factory HandSignatureControl.fromMap(Map<String, dynamic> map) =>
+      HandSignatureControl._(
+        map['threshold'],
+        map['smoothRatio'],
+        map['velocityRange'],
+        (map['paths'] as List).map((e) => CubicPath._fromMap(e)).toList(),
+      );
+
+  HandSignatureControl._(
+    this.threshold,
+    this.smoothRatio,
+    this.velocityRange,
+    List<CubicPath> paths,
+  ) : _paths = paths;
+
+  Map<String, dynamic> toMap({int? fractionDigits}) {
+    _fractionDigits = fractionDigits;
+
+    return {
+      'threshold': threshold,
+      'smoothRatio': smoothRatio,
+      'velocityRange': velocityRange,
+      'paths': _paths.map((e) => e._toMap).toList(),
+    };
+  }
 
   /// Starts new line at given [point].
   void startPath(Offset point) {
