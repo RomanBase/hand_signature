@@ -50,8 +50,8 @@ class _HandSignaturePaintState extends State<HandSignaturePaint> {
 
     widget.control.params = SignaturePaintParams(
       color: widget.color,
-      width: widget.width,
-      maxWidth: widget.maxWidth,
+      strokeWidth: widget.width,
+      maxStrokeWidth: widget.maxWidth,
     );
 
     widget.control.addListener(_updateState);

@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui';
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../signature.dart';
@@ -14,10 +13,10 @@ class SignaturePaintParams {
   final Color color;
 
   /// Minimal width of line.
-  final double width;
+  final double strokeWidth;
 
   /// Maximal width of line.
-  final double maxWidth;
+  final double maxStrokeWidth;
 
   /// Hex value of [color].
   String get hexColor => color.hexValue;
@@ -27,12 +26,12 @@ class SignaturePaintParams {
 
   /// Paint settings of line.
   /// [color] - color of line.
-  /// [width] - minimal width of line.
-  /// [maxWidth] - maximal width of line.
+  /// [strokeWidth] - minimal width of line.
+  /// [maxStrokeWidth] - maximal width of line.
   const SignaturePaintParams({
     this.color: Colors.black,
-    this.width: 1.0,
-    this.maxWidth: 10.0,
+    this.strokeWidth: 1.0,
+    this.maxStrokeWidth: 10.0,
   });
 }
 
@@ -864,7 +863,7 @@ class HandSignatureControl extends ChangeNotifier {
   /// [type] - data structure.
   String? toSvg({
     SignatureDrawType type: SignatureDrawType.shape,
-    bool wrapSignature = false,
+    bool wrapSignature: false,
     Size? size,
     double border: 0.0,
     Color? color,
@@ -879,13 +878,13 @@ class HandSignatureControl extends ChangeNotifier {
 
     params ??= SignaturePaintParams(
       color: Colors.black,
-      width: 1.0,
-      maxWidth: 10.0,
+      strokeWidth: 1.0,
+      maxStrokeWidth: 10.0,
     );
 
     color ??= params!.color;
-    strokeWidth ??= params!.width;
-    maxStrokeWidth ??= params!.maxWidth;
+    strokeWidth ??= params!.strokeWidth;
+    maxStrokeWidth ??= params!.maxStrokeWidth;
 
     final bounds = PathUtil.boundsOf(_offsets);
     final rect = _getSvgRect(wrapSignature, size, bounds);
@@ -1089,13 +1088,13 @@ class HandSignatureControl extends ChangeNotifier {
 
     params ??= SignaturePaintParams(
       color: Colors.black,
-      width: 1.0,
-      maxWidth: 10.0,
+      strokeWidth: 1.0,
+      maxStrokeWidth: 10.0,
     );
 
     color ??= params!.color;
-    size ??= params!.width;
-    maxSize ??= params!.maxWidth;
+    size ??= params!.strokeWidth;
+    maxSize ??= params!.maxStrokeWidth;
 
     final recorder = PictureRecorder();
     final painter = PathSignaturePainter(
