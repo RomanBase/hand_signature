@@ -56,6 +56,17 @@ extension PathEx on Path {
   void line(Offset offset) => lineTo(offset.dx, offset.dy);
 }
 
+extension SizeExt on Size {
+  Size scaleToFit(Size other) {
+    final scale = min(
+      other.width / this.width,
+      other.height / this.height,
+    );
+
+    return this * scale;
+  }
+}
+
 //TODO: clean up
 class PathUtil {
   static Rect bounds(List<Offset> data) {
