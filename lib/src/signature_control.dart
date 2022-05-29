@@ -864,13 +864,15 @@ class HandSignatureControl extends ChangeNotifier {
   /// [type] - data structure.
   String? toSvg({
     SignatureDrawType type: SignatureDrawType.shape,
-    int width: 512,
-    int height: 256,
+    bool wrapSignature = false,
+    Size? size,
     double border: 0.0,
     Color? color,
-    double? size,
-    double? maxSize,
+    double? strokeWidth,
+    double? maxStrokeWidth,
   }) {
+    assert(wrapSignature || size != null);
+
     if (!isFilled) {
       return null;
     }
@@ -882,38 +884,66 @@ class HandSignatureControl extends ChangeNotifier {
     );
 
     color ??= params!.color;
-    size ??= params!.width;
-    maxSize ??= params!.maxWidth;
+    strokeWidth ??= params!.width;
+    maxStrokeWidth ??= params!.maxWidth;
 
-    switch (type) {
-      case SignatureDrawType.line:
-        return _exportPathSvg(width, height, border, color, size);
-      case SignatureDrawType.arc:
-        return _exportArcSvg(width, height, border, color, size, maxSize);
-      case SignatureDrawType.shape:
-        return _exportShapeSvg(width, height, border, color, size, maxSize);
+    final bounds = PathUtil.boundsOf(_offsets);
+    final rect = _getSvgRect(wrapSignature, size, bounds);
+
+    if (type == SignatureDrawType.line || type == SignatureDrawType.shape) {
+      final data = PathUtil.fillData(
+        _cubicLines,
+        rect,
+        bound: bounds,
+        border: maxStrokeWidth + border,
+      );
+
+      return type == SignatureDrawType.line
+          ? _exportPathSvg(data, rect.size, color, strokeWidth)
+          : _exportShapeSvg(
+              data,
+              rect.size,
+              color,
+              strokeWidth,
+              maxStrokeWidth,
+            );
+    } else {
+      final data = PathUtil.fill(
+        _arcs,
+        rect,
+        bound: bounds,
+        border: maxStrokeWidth + border,
+      );
+
+      return _exportArcSvg(data, rect.size, color, strokeWidth, maxStrokeWidth);
+    }
+  }
+
+  Rect _getSvgRect(bool wrapSignature, Size? size, Rect bounds) {
+    if (wrapSignature && size != null) {
+      final newSize = bounds.size.scaleToFit(size);
+
+      return Rect.fromLTRB(0, 0, newSize.width, newSize.height);
+    } else if (wrapSignature) {
+      return bounds;
+    } else {
+      return Rect.fromLTRB(0.0, 0.0, size!.width, size.height);
     }
   }
 
   /// Exports [svg] as simple line.
   String _exportPathSvg(
-    int width,
-    int height,
-    double border,
+    List<List<CubicLine>> data,
+    Size size,
     Color color,
-    double size,
+    double strokeWidth,
   ) {
-    final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
-    final bounds = PathUtil.boundsOf(_offsets);
-    final data = PathUtil.fillData(_cubicLines, rect,
-        bound: bounds, border: size + border);
-
     final buffer = StringBuffer();
     buffer.writeln('<?xml version="1.0" encoding="UTF-8" standalone="no"?>');
     buffer.writeln(
-        '<svg width="$width" height="$height" xmlns="http://www.w3.org/2000/svg">');
+        '<svg width="${size.width}" height="${size.height}" xmlns="http://www.w3.org/2000/svg">');
     buffer.writeln(
-        '<g stroke="${color.hexValue}" fill="none" stroke-width="$size" stroke-linecap="round" stroke-linejoin="round" >');
+        '<g stroke="${color.hexValue}" fill="none" stroke-width="$strokeWidth" stroke-linecap="round" stroke-linejoin="round" >');
 
     data.forEach((line) {
       buffer.write('<path d="M ${line[0].dx} ${line[0].dy}');
@@ -930,27 +960,22 @@ class HandSignatureControl extends ChangeNotifier {
 
   /// Exports [svg] as a lot of arcs.
   String _exportArcSvg(
-    int width,
-    int height,
-    double border,
+    List<CubicArc> data,
+    Size size,
     Color color,
-    double size,
-    double maxSize,
+    double strokeWidth,
+    double maxStrokeWidth,
   ) {
-    final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
-    final bounds = PathUtil.boundsOf(_offsets);
-    final data =
-        PathUtil.fill(_arcs, rect, bound: bounds, border: maxSize + border);
-
     final buffer = StringBuffer();
     buffer.writeln('<?xml version="1.0" encoding="UTF-8" standalone="no"?>');
     buffer.writeln(
-        '<svg width="$width" height="$height" xmlns="http://www.w3.org/2000/svg">');
+        '<svg width="${size.width}" height="${size.height}" xmlns="http://www.w3.org/2000/svg">');
     buffer.writeln(
         '<g stroke="${color.hexValue}" fill="none" stroke-linecap="round" stroke-linejoin="round" >');
 
     data.forEach((arc) {
-      final strokeSize = size + (maxSize - size) * arc.size;
+      final strokeSize =
+          strokeWidth + (maxStrokeWidth - strokeWidth) * arc.size;
       buffer.writeln(
           '<path d="M ${arc.dx} ${arc.dy} A 0 0, ${CubicArc._pi2}, 0, 0, ${arc.location.dx} ${arc.location.dy}" stroke-width="$strokeSize" />');
     });
@@ -963,38 +988,33 @@ class HandSignatureControl extends ChangeNotifier {
 
   /// Exports [svg] as shape - 4 paths per line. Path is closed and filled with given color.
   String _exportShapeSvg(
-    int width,
-    int height,
-    double border,
+    List<List<CubicLine>> data,
+    Size size,
     Color color,
-    double size,
-    double maxSize,
+    double strokeWidth,
+    double maxStrokeWidth,
   ) {
-    final rect = Rect.fromLTRB(0.0, 0.0, width.toDouble(), height.toDouble());
-    final bounds = PathUtil.boundsOf(_offsets);
-    final data = PathUtil.fillData(_cubicLines, rect,
-        bound: bounds, border: maxSize + border);
-
     final buffer = StringBuffer();
     buffer.writeln('<?xml version="1.0" encoding="UTF-8" standalone="no"?>');
     buffer.writeln(
-        '<svg width="$width" height="$height" xmlns="http://www.w3.org/2000/svg">');
+        '<svg width="${size.width}" height="${size.height}" xmlns="http://www.w3.org/2000/svg">');
     buffer.writeln('<g fill="${color.hexValue}">');
 
     data.forEach((lines) {
       if (lines.length == 1 && lines[0].isDot) {
         final dot = lines[0];
         buffer.writeln(
-            '<circle cx="${dot.start.dx}" cy="${dot.start.dy}" r="${dot.startRadius(size, maxSize)}" />');
+            '<circle cx="${dot.start.dx}" cy="${dot.start.dy}" r="${dot.startRadius(strokeWidth, maxStrokeWidth)}" />');
       } else {
         final firstLine = lines.first;
-        final start = firstLine.start + firstLine.cpsUp(size, maxSize);
+        final start =
+            firstLine.start + firstLine.cpsUp(strokeWidth, maxStrokeWidth);
         buffer.write('<path d="M ${start.dx} ${start.dy}');
 
         for (int i = 0; i < lines.length; i++) {
           final line = lines[i];
-          final d1 = line.cpsUp(size, maxSize);
-          final d2 = line.cpeUp(size, maxSize);
+          final d1 = line.cpsUp(strokeWidth, maxStrokeWidth);
+          final d2 = line.cpeUp(strokeWidth, maxStrokeWidth);
 
           final cpStart = line.cpStart + d1;
           final cpEnd = line.cpEnd + d2;
@@ -1005,13 +1025,14 @@ class HandSignatureControl extends ChangeNotifier {
         }
 
         final lastLine = lines.last;
-        final half = lastLine.end + lastLine.cpeDown(size, maxSize);
+        final half =
+            lastLine.end + lastLine.cpeDown(strokeWidth, maxStrokeWidth);
         buffer.write(' L ${half.dx} ${half.dy}');
 
         for (int i = lines.length - 1; i > -1; i--) {
           final line = lines[i];
-          final d3 = line.cpeDown(size, maxSize);
-          final d4 = line.cpsDown(size, maxSize);
+          final d3 = line.cpeDown(strokeWidth, maxStrokeWidth);
+          final d4 = line.cpsDown(strokeWidth, maxStrokeWidth);
 
           final cpEnd = line.cpEnd + d3;
           final cpStart = line.cpStart + d4;
@@ -1024,9 +1045,9 @@ class HandSignatureControl extends ChangeNotifier {
         buffer.writeln(' z" />');
 
         buffer.writeln(
-            '<circle cx="${firstLine.start.dx}" cy="${firstLine.start.dy}" r="${firstLine.startRadius(size, maxSize)}" />');
+            '<circle cx="${firstLine.start.dx}" cy="${firstLine.start.dy}" r="${firstLine.startRadius(strokeWidth, maxStrokeWidth)}" />');
         buffer.writeln(
-            '<circle cx="${lastLine.end.dx}" cy="${lastLine.end.dy}" r="${lastLine.endRadius(size, maxSize)}" />');
+            '<circle cx="${lastLine.end.dx}" cy="${lastLine.end.dy}" r="${lastLine.endRadius(strokeWidth, maxStrokeWidth)}" />');
       }
     });
 

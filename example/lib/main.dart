@@ -82,8 +82,9 @@ class MyApp extends StatelessWidget {
                               onPressed: () async {
                                 svg.value = control.toSvg(
                                   color: Colors.blueGrey,
-                                  size: 2.0,
-                                  maxSize: 15.0,
+                                  size: Size(512, 256),
+                                  strokeWidth: 2.0,
+                                  maxStrokeWidth: 15.0,
                                   type: SignatureDrawType.shape,
                                 );
 
