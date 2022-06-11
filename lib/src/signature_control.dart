@@ -362,6 +362,26 @@ class CubicLine extends Offset {
 
     return Offset(x, y);
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is CubicLine &&
+      start == other.start &&
+      cpStart == other.cpStart &&
+      cpEnd == other.cpEnd &&
+      end == other.end &&
+      startSize == other.startSize &&
+      endSize == other.endSize;
+
+  @override
+  int get hashCode =>
+      super.hashCode ^
+      start.hashCode ^
+      cpStart.hashCode ^
+      cpEnd.hashCode ^
+      end.hashCode ^
+      startSize.hashCode ^
+      endSize.hashCode;
 }
 
 /// Arc between two points.
@@ -525,7 +545,7 @@ class CubicPath {
   /// Starts path at given [point].
   /// Must be called as first, before [begin], [end].
   void begin(Offset point, {double velocity: 0.0}) {
-    _points.add(OffsetPoint.from(point));
+    _points.add(point is OffsetPoint ? point : OffsetPoint.from(point));
     _currentVelocity = velocity;
 
     _temp = _dot(point);
@@ -681,6 +701,21 @@ class CubicPath {
     _points.clear();
     _lines.clear();
     _arcs.clear();
+  }
+
+  /// Currently checks only equality of [points].
+  bool equals(CubicPath other) {
+    if (points.length == other.points.length) {
+      for (int i = 0; i < points.length; i++) {
+        if (points[i] != other.points[i]) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    return false;
   }
 }
 
@@ -1152,6 +1187,21 @@ class HandSignatureControl extends ChangeNotifier {
     }
 
     return image.toByteData(format: format);
+  }
+
+  /// Currently checks only equality of [paths].
+  bool equals(HandSignatureControl other) {
+    if (paths.length == other.paths.length) {
+      for (int i = 0; i < paths.length; i++) {
+        if (!paths[i].equals(other.paths[i])) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    return false;
   }
 
   @override
