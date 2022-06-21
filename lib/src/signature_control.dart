@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui';
@@ -55,13 +54,17 @@ class OffsetPoint extends Offset {
         timestamp: DateTime.now().millisecondsSinceEpoch,
       );
 
-  factory OffsetPoint._import(Map<String, dynamic> map) => OffsetPoint(
+  factory OffsetPoint._fromMap(Map<String, dynamic> map) => OffsetPoint(
         dx: map['x'],
         dy: map['y'],
         timestamp: map['t'],
       );
 
-  String get _export => '{"x":$dx,"y":$dy,"t":$timestamp}';
+  Map<String, dynamic> get _toMap => {
+        'x': dx,
+        'y': dy,
+        't': timestamp,
+      };
 
   /// Returns velocity between this and [other] - previous point.
   double velocityFrom(OffsetPoint other) => timestamp != other.timestamp
@@ -504,7 +507,8 @@ class CubicPath {
         _arcs = [],
         _lines = [];
 
-  String get _export => '[${points.map((p) => p._export).join(',')}]';
+  List<Map<String, dynamic>> get _exportPoints =>
+      points.map((p) => p._toMap).toList();
 
   /// Adds line to path.
   void _addLine(CubicLine line) {
@@ -772,17 +776,20 @@ class HandSignatureControl extends ChangeNotifier {
         assert(smoothRatio > 0.0),
         assert(velocityRange > 0.0);
 
-  factory HandSignatureControl.import(String source) {
-    final data = jsonDecode(source) as Iterable;
-    final control = HandSignatureControl();
+  factory HandSignatureControl.fromMap(Map<String, dynamic> map) {
+    final control = HandSignatureControl(
+      smoothRatio: map['smoothRatio'],
+      threshold: map['threshold'],
+      velocityRange: map['velocityRange'],
+    );
 
-    for (var points in data) {
-      final line = List.of(points);
+    for (final path in map['paths']) {
+      final List points = List.from(path);
 
       //start path with first point
-      control.startPath(OffsetPoint._import(line[0]));
-      for (var point in line.skip(1)) {
-        control.alterPath(OffsetPoint._import(point));
+      control.startPath(OffsetPoint._fromMap(points[0]));
+      for (var point in points.skip(1)) {
+        control.alterPath(OffsetPoint._fromMap(point));
       }
       control.closePath();
     }
@@ -790,7 +797,12 @@ class HandSignatureControl extends ChangeNotifier {
     return control;
   }
 
-  String get export => '[${paths.map((p) => p._export).join(',')}]';
+  Map<String, dynamic> get toMap => {
+        'paths': paths.map((p) => p._exportPoints).toList(),
+        'threshold': threshold,
+        'smoothRatio': smoothRatio,
+        'velocityRange': velocityRange,
+      };
 
   /// Starts new line at given [point].
   void startPath(Offset point) {
