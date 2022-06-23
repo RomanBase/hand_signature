@@ -54,6 +54,18 @@ class OffsetPoint extends Offset {
         timestamp: DateTime.now().millisecondsSinceEpoch,
       );
 
+  factory OffsetPoint._fromMap(Map<String, dynamic> map) => OffsetPoint(
+        dx: map['x'],
+        dy: map['y'],
+        timestamp: map['t'],
+      );
+
+  Map<String, dynamic> get _toMap => {
+        'x': dx,
+        'y': dy,
+        't': timestamp,
+      };
+
   /// Returns velocity between this and [other] - previous point.
   double velocityFrom(OffsetPoint other) => timestamp != other.timestamp
       ? this.distanceTo(other) / (timestamp - other.timestamp)
@@ -430,13 +442,13 @@ class CubicArc extends Offset {
 /// Combines sequence of points into one Line.
 class CubicPath {
   /// Raw data.
-  final _points = <OffsetPoint>[];
+  final List<OffsetPoint> _points;
 
   /// [CubicLine] representation of path.
-  final _lines = <CubicLine>[];
+  final List<CubicLine> _lines;
 
   /// [CubicArc] representation of path.
-  final _arcs = <CubicArc>[];
+  final List<CubicArc> _arcs;
 
   /// Returns raw data of path.
   List<OffsetPoint> get points => _points;
@@ -458,10 +470,10 @@ class CubicPath {
   bool get isFilled => _lines.isNotEmpty;
 
   /// Unfinished path.
-  Path? _temp;
+  // Path? _temp;
 
   /// Returns currently unfinished part of path.
-  Path? get tempPath => _temp;
+  // Path? get tempPath => _temp;
 
   /// Maximum possible velocity.
   double maxVelocity = 1.0;
@@ -473,14 +485,14 @@ class CubicPath {
   double _currentSize = 0.0;
 
   /// Distance between two control points.
-  final threshold;
+  final double threshold;
 
   /// Ratio of line smoothing.
   /// Don't have impact to performance. Values between 0 - 1.
   /// [0] - no smoothing, no flattening.
   /// [1] - best smoothing, but flattened.
   /// Best results are between: 0.5 - 0.85.
-  final smoothRatio;
+  final double smoothRatio;
 
   /// Checks if this Line is just dot.
   bool get isDot => lines.length == 1 && lines[0].isDot;
@@ -491,7 +503,12 @@ class CubicPath {
   CubicPath({
     this.threshold: 3.0,
     this.smoothRatio: 0.65,
-  });
+  })  : _points = [],
+        _arcs = [],
+        _lines = [];
+
+  List<Map<String, dynamic>> get _exportPoints =>
+      points.map((p) => p._toMap).toList();
 
   /// Adds line to path.
   void _addLine(CubicLine line) {
@@ -547,8 +564,6 @@ class CubicPath {
   void begin(Offset point, {double velocity: 0.0}) {
     _points.add(point is OffsetPoint ? point : OffsetPoint.from(point));
     _currentVelocity = velocity;
-
-    _temp = _dot(point);
   }
 
   /// Alters path with given [point].
@@ -558,21 +573,13 @@ class CubicPath {
     final nextPoint = point is OffsetPoint ? point : OffsetPoint.from(point);
 
     if (_lastPoint == null || _lastPoint!.distanceTo(nextPoint) < threshold) {
-      _temp = _line(_points.last, nextPoint);
-
       return;
     }
 
     _points.add(nextPoint);
     int count = _points.length;
 
-    if (count < 3) {
-      if (count > 1) {
-        _temp = _line(_points[0], _points[1]);
-      }
-
-      return;
-    }
+    if (count < 3) return;
 
     int i = count - 3;
 
@@ -604,8 +611,6 @@ class CubicPath {
     );
 
     _addLine(line);
-
-    _temp = _line(end, next);
   }
 
   /// Ends path at given [point].
@@ -613,8 +618,6 @@ class CubicPath {
     if (point != null) {
       add(point);
     }
-
-    _temp = null;
 
     if (_points.isEmpty) {
       return false;
@@ -653,31 +656,6 @@ class CubicPath {
 
     return true;
   }
-
-  /// Creates [Path] as dot at given [point].
-  Path _dot(Offset point) => Path()
-    ..moveTo(point.dx, point.dy)
-    ..cubicTo(
-      point.dx,
-      point.dy,
-      point.dx,
-      point.dy,
-      point.dx,
-      point.dy,
-    );
-
-  /// Creates [Path] between [start] and [end] points, curve is controlled be [startCp] and [endCp] control points.
-  Path _line(Offset start, Offset end, [Offset? startCp, Offset? endCp]) =>
-      Path()
-        ..moveTo(start.dx, start.dy)
-        ..cubicTo(
-          startCp != null ? startCp.dx : (start.dx + end.dx) * 0.5,
-          startCp != null ? startCp.dy : (start.dy + end.dy) * 0.5,
-          endCp != null ? endCp.dx : (start.dx + end.dx) * 0.5,
-          endCp != null ? endCp.dy : (start.dy + end.dy) * 0.5,
-          end.dx,
-          end.dy,
-        );
 
   /// Sets scale of whole line.
   void setScale(double ratio) {
@@ -723,7 +701,7 @@ class CubicPath {
 /// Also handles export of finished signature.
 class HandSignatureControl extends ChangeNotifier {
   /// List of active paths.
-  final _paths = <CubicPath>[];
+  final List<CubicPath> _paths;
 
   /// List of currently completed lines.
   List<CubicPath> get paths => _paths;
@@ -759,7 +737,7 @@ class HandSignatureControl extends ChangeNotifier {
   List<CubicLine> get lines {
     final list = <CubicLine>[];
 
-    _paths.forEach((data) => list.addAll(data.lines));
+    _paths.forEach((data) => list.addAll(data._lines));
 
     return list;
   }
@@ -793,9 +771,38 @@ class HandSignatureControl extends ChangeNotifier {
     this.threshold: 3.0,
     this.smoothRatio: 0.65,
     this.velocityRange: 2.0,
-  })  : assert(threshold > 0.0),
+  })  : _paths = [],
+        assert(threshold > 0.0),
         assert(smoothRatio > 0.0),
         assert(velocityRange > 0.0);
+
+  factory HandSignatureControl.fromMap(Map<String, dynamic> map) {
+    final control = HandSignatureControl(
+      smoothRatio: map['smoothRatio'],
+      threshold: map['threshold'],
+      velocityRange: map['velocityRange'],
+    );
+
+    for (final path in map['paths']) {
+      final List points = List.from(path);
+
+      //start path with first point
+      control.startPath(OffsetPoint._fromMap(points[0]));
+      for (var point in points.skip(1)) {
+        control.alterPath(OffsetPoint._fromMap(point));
+      }
+      control.closePath();
+    }
+
+    return control;
+  }
+
+  Map<String, dynamic> get toMap => {
+        'paths': paths.map((p) => p._exportPoints).toList(),
+        'threshold': threshold,
+        'smoothRatio': smoothRatio,
+        'velocityRange': velocityRange,
+      };
 
   /// Starts new line at given [point].
   void startPath(Offset point) {
