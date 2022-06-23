@@ -5,7 +5,7 @@ import '../signature.dart';
 /// Creates [CustomPaint] and rebuilds whenever signature data are changed.
 /// All arguments are passed to [PathSignaturePainter].
 ///
-/// Check [HandSignaturePainterView] and [HandSignatureView].
+/// Check [HandSignature] and [HandSignatureView].
 class HandSignaturePaint extends StatefulWidget {
   /// Paths controller.
   final HandSignatureControl control;

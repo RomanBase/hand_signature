@@ -49,7 +49,7 @@ class MyApp extends StatelessWidget {
                                   Container(
                                     constraints: BoxConstraints.expand(),
                                     color: Colors.white,
-                                    child: HandSignaturePainterView(
+                                    child: HandSignature(
                                       control: control,
                                       type: SignatureDrawType.shape,
                                     ),

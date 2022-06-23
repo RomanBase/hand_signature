@@ -30,7 +30,7 @@ class _ScrollTestState extends State<ScrollTest> {
           Container(
             constraints: BoxConstraints.expand(height: 320.0),
             color: Colors.white,
-            child: HandSignaturePainterView(
+            child: HandSignature(
               control: control,
               type: SignatureDrawType.shape,
               onPointerDown: () {

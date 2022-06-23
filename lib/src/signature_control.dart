@@ -763,7 +763,7 @@ class HandSignatureControl extends ChangeNotifier {
   /// Checks if something is drawn.
   bool get isFilled => _paths.isNotEmpty;
 
-  /// Controls input from [HandSignaturePainterView] and creates smooth signature path.
+  /// Controls input from [HandSignature] and creates smooth signature path.
   HandSignatureControl({
     this.threshold: 3.0,
     this.smoothRatio: 0.65,

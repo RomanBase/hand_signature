@@ -7,7 +7,7 @@ import '../signature.dart';
 import 'utils.dart';
 
 /// Wraps [HandSignaturePaint] to paint signature. And [RawGestureDetector] to send input to [HandSignatureControl].
-class HandSignaturePainterView extends StatelessWidget {
+class HandSignature extends StatelessWidget {
   /// Controls path creation.
   final HandSignatureControl control;
 
@@ -30,7 +30,7 @@ class HandSignaturePainterView extends StatelessWidget {
   final VoidCallback? onPointerUp;
 
   /// Draws [Path] based on input and stores data in [control].
-  HandSignaturePainterView({
+  HandSignature({
     Key? key,
     required this.control,
     this.color: Colors.black,
