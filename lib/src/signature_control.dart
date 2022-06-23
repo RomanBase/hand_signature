@@ -764,12 +764,15 @@ class HandSignatureControl extends ChangeNotifier {
   bool get isFilled => _paths.isNotEmpty;
 
   /// Controls input from [HandSignature] and creates smooth signature path.
+  /// [threshold] minimal distance between two points.
+  /// [smoothRatio] smoothing ratio of curved parts.
+  /// [velocityRange] controls velocity speed and dampening between points (only Shape and Arc drawing types using this property to control line width). aka how fast si signature drawn..
   HandSignatureControl({
     this.threshold: 3.0,
     this.smoothRatio: 0.65,
     this.velocityRange: 2.0,
   })  : assert(threshold > 0.0),
-        assert(smoothRatio > 0.0),
+        assert(smoothRatio > 0.0 && smoothRatio <= 1.0),
         assert(velocityRange > 0.0);
 
   factory HandSignatureControl.fromMap(Map<String, dynamic> data) =>
@@ -820,12 +823,14 @@ class HandSignatureControl extends ChangeNotifier {
   void importPath(List<CubicPath> paths, [Size? bounds]) {
     //TODO: check bounds
 
-    if (_areaSize.isEmpty) {
-      print(
-          'Signature: Canvas area is not specified yet. Signature can be out of visible bounds or misplaced.');
-    } else if (bounds != null && _areaSize != bounds) {
-      print(
-          'Signature: Canvas area has different size. Signature can be out of visible bounds or misplaced.');
+    if (bounds != null) {
+      if (_areaSize.isEmpty) {
+        print(
+            'Signature: Canvas area is not specified yet. Signature can be out of visible bounds or misplaced.');
+      } else if (_areaSize != bounds) {
+        print(
+            'Signature: Canvas area has different size. Signature can be out of visible bounds or misplaced.');
+      }
     }
 
     _paths.addAll(paths);

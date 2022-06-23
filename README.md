@@ -3,7 +3,8 @@ Easy to use library with variety of draw and export settings. Also supports SVG 
 
 ![Structure](https://raw.githubusercontent.com/RomanBase/hand_signature/master/doc/signature.png)
 
-Signature pad drawing is based on Cubic Bézier curves.
+Signature pad drawing is based on Cubic Bézier curves.\
+Offers to choose between performance and beauty mode.
 
 ---
 
@@ -41,7 +42,9 @@ With **HandSignatureControl** and **HandSignaturePainterView** is possible to tw
 - width: minimal width of line. Width at maximum swing speed (clamped by velocityRange).
 - maxWidth: maximum width of line. Width at slowest swing speed.
 - type: draw type of curve. Default and main draw type is **shape** - not so nice as **arc**, but has better performance. And **line** is simple path with uniform stroke width. 
-
+  - line: basic Bezier line with best performance.
+  - shape: like Ink drawn signature with still pretty good performance.
+  - arc: beauty mode for Ink styled signature.
 ---
 
 **Export**\
@@ -52,13 +55,17 @@ There are more ways and more formats how to export signature, most used ones are
 
     final svg = control.toSvg();
     final png = control.toImage();
+    final json = control.toMap();
+    
+    control.importData(json);
 ```
-Of course draw type is also supported during export. SignatureDrawType **shape** generates reasonably small file and is read well by all programs. On the other side **arc** generates really big file and some programs can have hard times handling so much objects.\
-Export to image supports **ImageByteFormat** and provides png or raw rgba data.\
+SVG: SignatureDrawType **shape** generates reasonably small file and is read well by all programs. On the other side **arc** generates really big svg file and some programs can have hard times handling so much objects. **Line** is simple Bezier Curve.\
+Image: Export to image supports **ImageByteFormat** and provides png or raw rgba data.
+Json/Map: Exports current state - raw data that can be used later to restore state.
 
-**Parsing**\
+**Parsing and drawing saved SVG**\
 Exported **svg** is possible to display in classic [flutter_svg](https://pub.dev/packages/flutter_svg) widget.\
-Or use build in **HandSignatureView** for greater control.
+Or use build in **HandSignatureView** for further line modifications.
 ```dart
     final widget = HandSignatureView.svg(
       data: svgString,
@@ -82,6 +89,5 @@ Currently stroke width can be controlled only for **line** and **arc** exports.\
 Any contribution is highly welcomed.\
 Library is in good condition, but still in early development.\
 Mainly to improve smoothing and line weight to better match real signature.\
-Remove dependency to [flutter_svg](https://pub.dev/packages/flutter_svg) and make library dependent only on [path_drawing](https://pub.dev/packages/path_drawing) or [path_parsing](https://pub.dev/packages/path_parsing).\
 Performance can be always better..\
 Also currently there are no tests or documentation.
