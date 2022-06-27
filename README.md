@@ -13,7 +13,7 @@ Offers to choose between performance and beauty mode.
     import 'package:hand_signature/signature.dart';
 ```
 
-With **HandSignatureControl** and **HandSignaturePainterView** is possible to tweak some drawing aspects like stroke width, smoothing ratio or velocity weight.
+With **HandSignatureControl** and **HandSignature** is possible to tweak some drawing aspects like stroke width, smoothing ratio or velocity weight.
 ```dart
     final control = HandSignatureControl(
       threshold: 3.0,
@@ -21,7 +21,7 @@ With **HandSignatureControl** and **HandSignaturePainterView** is possible to tw
       velocityRange: 2.0,
     );
 
-    final widget = HandSignaturePainterView(
+    final widget = HandSignature(
       control: control,
       color: Colors.blueGrey,
       width: 1.0,
@@ -36,7 +36,7 @@ With **HandSignatureControl** and **HandSignaturePainterView** is possible to tw
 - velocityRange: (LP per millisecond) controls curve size based on distance and duration between two points. Thin line - fast move, thick line - slow move. With higher velocityRange user must swing faster to draw thinner line.
 - reverseVelocity: swaps stroke width. Thin line - slow move, thick line - fast move. Simply swaps min/max size based on velocity. 
 
-**HandSignaturePainterView** sets up visual style of signature curve.
+**HandSignature** sets up visual style of signature curve.
 - control: processes input, handles math and stores raw data.
 - color: just color of line.
 - width: minimal width of line. Width at maximum swing speed (clamped by velocityRange).
