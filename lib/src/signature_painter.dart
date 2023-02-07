@@ -129,7 +129,7 @@ class PathSignaturePainter extends CustomPainter {
 /// Used on parsed svg data.
 class DrawableSignaturePainter extends CustomPainter {
   /// Root [Drawable].
-  final DrawableParent drawable;
+  final PictureInfo drawable;
 
   /// Path color. Overrides color of [Drawable].
   final Color? color;
@@ -146,51 +146,7 @@ class DrawableSignaturePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    _draw(
-      drawable,
-      canvas,
-      Paint()
-        ..color = color ?? Colors.black
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
-    );
-  }
-
-  /// Recursive function to draw all shapes as [Path].
-  void _draw(DrawableParent root, Canvas canvas, Paint paint) {
-    if (root.children != null) {
-      root.children!.forEach((drawable) {
-        if (drawable is DrawableShape) {
-          final stroke = drawable.style.stroke;
-          final fill = drawable.style.fill;
-
-          if (fill != null && !DrawablePaint.isEmpty(fill)) {
-            paint.style = PaintingStyle.fill;
-            if (color == null && fill.color != null) {
-              paint.color = fill.color!;
-            }
-          } else if (stroke != null && !DrawablePaint.isEmpty(stroke)) {
-            paint.style = PaintingStyle.stroke;
-
-            if (color == null && stroke.color != null) {
-              paint.color = stroke.color!;
-            }
-
-            if (stroke.strokeWidth != null) {
-              if (strokeWidth != null) {
-                paint.strokeWidth = strokeWidth!.call(stroke.strokeWidth!);
-              } else {
-                paint.strokeWidth = stroke.strokeWidth!;
-              }
-            }
-          }
-
-          canvas.drawPath(drawable.path, paint);
-        } else if (drawable is DrawableParent) {
-          _draw(drawable, canvas, paint);
-        }
-      });
-    }
+    canvas.drawPicture(drawable.picture);
   }
 
   @override
