@@ -97,15 +97,19 @@ class PathSignaturePainter extends CustomPainter {
         paths.forEach((path) {
           if (path.isFilled) {
             if (path.isDot) {
-              canvas.drawCircle(path.lines[0], path.lines[0].startRadius(width, maxWidth), paint);
+              canvas.drawCircle(path.lines[0],
+                  path.lines[0].startRadius(width, maxWidth), paint);
             } else {
-              canvas.drawPath(PathUtil.toShapePath(path.lines, width, maxWidth), paint);
+              canvas.drawPath(
+                  PathUtil.toShapePath(path.lines, width, maxWidth), paint);
 
               final first = path.lines.first;
               final last = path.lines.last;
 
-              canvas.drawCircle(first.start, first.startRadius(width, maxWidth), paint);
-              canvas.drawCircle(last.end, last.endRadius(width, maxWidth), paint);
+              canvas.drawCircle(
+                  first.start, first.startRadius(width, maxWidth), paint);
+              canvas.drawCircle(
+                  last.end, last.endRadius(width, maxWidth), paint);
             }
           }
         });

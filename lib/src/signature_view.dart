@@ -57,7 +57,8 @@ class HandSignature extends StatelessWidget {
     return ClipRRect(
       child: RawGestureDetector(
         gestures: <Type, GestureRecognizerFactory>{
-          _SingleGestureRecognizer: GestureRecognizerFactoryWithHandlers<_SingleGestureRecognizer>(
+          _SingleGestureRecognizer:
+              GestureRecognizerFactoryWithHandlers<_SingleGestureRecognizer>(
             () => _SingleGestureRecognizer(debugOwner: this),
             (instance) {
               instance.onStart = (position) => _startPath(position);

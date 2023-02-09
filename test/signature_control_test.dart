@@ -21,7 +21,8 @@ void main() {
   control.closePath();
 
   // json string based on above mock data
-  final json = '[[{"x":0.0,"y":0.0,"t":1},{"x":10.0,"y":10.0,"t":10},{"x":20.0,"y":20.0,"t":15},{"x":30.0,"y":20.0,"t":20}],[{"x":30.0,"y":30.0,"t":25}]]';
+  final json =
+      '[[{"x":0.0,"y":0.0,"t":1},{"x":10.0,"y":10.0,"t":10},{"x":20.0,"y":20.0,"t":15},{"x":30.0,"y":20.0,"t":20}],[{"x":30.0,"y":30.0,"t":25}]]';
 
   group('IO', () {
     test('points', () async {
@@ -34,7 +35,8 @@ void main() {
       expect(curve.lines.length, 3);
 
       // velocity of first line should be lower because second line is drawn faster while distance is identical
-      expect(curve.lines[0].end - curve.lines[0].start, equals(curve.lines[1].end - curve.lines[1].start));
+      expect(curve.lines[0].end - curve.lines[0].start,
+          equals(curve.lines[1].end - curve.lines[1].start));
       expect(curve.lines[0].velocity(), lessThan(curve.lines[1].velocity()));
 
       expect(dot.points.length, 1);
@@ -44,7 +46,8 @@ void main() {
     test('export', () async {
       final paths = control.paths;
 
-      final export = '[${paths.map((e) => '[${e.points.map((e) => '{"x":${e.dx},"y":${e.dy},"t":${e.timestamp}}').join(',')}]').join(',')}]';
+      final export =
+          '[${paths.map((e) => '[${e.points.map((e) => '{"x":${e.dx},"y":${e.dy},"t":${e.timestamp}}').join(',')}]').join(',')}]';
       final data = jsonDecode(export);
 
       expect(data, isNotNull);
@@ -93,7 +96,8 @@ void main() {
       expect(curve.lines.length, 3);
 
       // velocity of first line is lower because second line is drawn faster while distance is identical
-      expect(curve.lines[0].end - curve.lines[0].start, equals(curve.lines[1].end - curve.lines[1].start));
+      expect(curve.lines[0].end - curve.lines[0].start,
+          equals(curve.lines[1].end - curve.lines[1].start));
       expect(curve.lines[0].velocity(), lessThan(curve.lines[1].velocity()));
 
       expect(dot.points.length, 1);
