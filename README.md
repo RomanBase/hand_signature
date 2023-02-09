@@ -60,28 +60,11 @@ There are more ways and more formats how to export signature, most used ones are
     control.importData(json);
 ```
 SVG: SignatureDrawType **shape** generates reasonably small file and is read well by all programs. On the other side **arc** generates really big svg file and some programs can have hard times handling so much objects. **Line** is simple Bezier Curve.\
-Image: Export to image supports **ImageByteFormat** and provides png or raw rgba data.
+Image: Export to image supports **ImageByteFormat** and provides png or raw rgba data.\
 Json/Map: Exports current state - raw data that can be used later to restore state.
 
 **Parsing and drawing saved SVG**\
-Exported **svg** is possible to display in classic [flutter_svg](https://pub.dev/packages/flutter_svg) widget.\
-Or use build in **HandSignatureView** for further line modifications.
-```dart
-    final widget = HandSignatureView.svg(
-      data: svgString,
-      strokeWidth: (width) => width * 0.35,
-      padding: EdgeInsets.all(16.0),
-      placeholder: Container(
-        color: Colors.red,
-        child: Center(
-          child: Text('not signed yet'),
-        ),
-      ),
-    );
-```
-Signature is automatically centered and fills given area.\
-Currently stroke width can be controlled only for **line** and **arc** exports.\
-**HandSignatureView** handles most of svg files, but is optimized for drawing signatures created with this library and don't provide all features like [flutter_svg](https://pub.dev/packages/flutter_svg). 
+Exported **svg** is possible to display in another lib like: [flutter_svg](https://pub.dev/packages/flutter_svg) widget.
 
 ---
 

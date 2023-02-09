@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../signature.dart';
 
@@ -308,8 +307,6 @@ class PathUtil {
 
     return output;
   }
-
-  static Size getDrawableSize(PictureInfo root) => root.size;
 
   static Path toShapePath(List<CubicLine> lines, double size, double maxSize) {
     assert(lines.length > 0);

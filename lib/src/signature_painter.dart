@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../signature.dart';
 import 'utils.dart';
@@ -52,11 +51,11 @@ class PathSignaturePainter extends CustomPainter {
   /// [Path] painter.
   PathSignaturePainter({
     required this.paths,
-    this.color: Colors.black,
-    this.width: 1.0,
-    this.maxWidth: 10.0,
+    this.color = Colors.black,
+    this.width = 1.0,
+    this.maxWidth = 10.0,
     this.onSize,
-    this.type: SignatureDrawType.shape,
+    this.type = SignatureDrawType.shape,
   });
 
   @override
@@ -98,55 +97,21 @@ class PathSignaturePainter extends CustomPainter {
         paths.forEach((path) {
           if (path.isFilled) {
             if (path.isDot) {
-              canvas.drawCircle(path.lines[0],
-                  path.lines[0].startRadius(width, maxWidth), paint);
+              canvas.drawCircle(path.lines[0], path.lines[0].startRadius(width, maxWidth), paint);
             } else {
-              canvas.drawPath(
-                  PathUtil.toShapePath(path.lines, width, maxWidth), paint);
+              canvas.drawPath(PathUtil.toShapePath(path.lines, width, maxWidth), paint);
 
               final first = path.lines.first;
               final last = path.lines.last;
 
-              canvas.drawCircle(
-                  first.start, first.startRadius(width, maxWidth), paint);
-              canvas.drawCircle(
-                  last.end, last.endRadius(width, maxWidth), paint);
+              canvas.drawCircle(first.start, first.startRadius(width, maxWidth), paint);
+              canvas.drawCircle(last.end, last.endRadius(width, maxWidth), paint);
             }
           }
         });
 
         break;
     }
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) {
-    return true;
-  }
-}
-
-/// [CustomPainter] of [Drawable].
-/// Used on parsed svg data.
-class DrawableSignaturePainter extends CustomPainter {
-  /// Root [Drawable].
-  final PictureInfo drawable;
-
-  /// Path color. Overrides color of [Drawable].
-  final Color? color;
-
-  /// Path size modifier.
-  final double Function(double width)? strokeWidth;
-
-  /// [Drawable] painter.
-  DrawableSignaturePainter({
-    required this.drawable,
-    this.color,
-    this.strokeWidth,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawPicture(drawable.picture);
   }
 
   @override
@@ -165,11 +130,11 @@ class DebugSignaturePainterCP extends CustomPainter {
 
   DebugSignaturePainterCP({
     required this.control,
-    this.cp: false,
-    this.cpStart: true,
-    this.cpEnd: true,
-    this.dot: true,
-    this.color: Colors.red,
+    this.cp = false,
+    this.cpStart = true,
+    this.cpEnd = true,
+    this.dot = true,
+    this.color = Colors.red,
   });
 
   @override

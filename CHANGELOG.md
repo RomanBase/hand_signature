@@ -1,5 +1,7 @@
+## [3.0.0] - Dependency
+Removed dependency on `flutter_svg` and removed `HandSignatureView`.
 ## [2.3.0] - Import/Export current state (map/json)
-Refactor HandSignaturePainterView to HandSignature
+Refactor `HandSignaturePainterView` to `HandSignature`
 ## [2.2.0] - SVG wrap option
 ## [2.1.1] - Ability to export exact image
 toPicture and toImage now contains **fit** property.

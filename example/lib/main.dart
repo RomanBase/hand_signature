@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hand_signature/signature.dart';
 
 import 'scroll_test.dart';
@@ -190,13 +191,24 @@ class MyApp extends StatelessWidget {
         child: ValueListenableBuilder<String?>(
           valueListenable: svg,
           builder: (context, data, child) {
-            return HandSignatureView.svg(
-              data: data,
-              padding: EdgeInsets.all(8.0),
-              placeholder: Container(
+            if (data == null) {
+              return Container(
                 color: Colors.red,
                 child: Center(
                   child: Text('not signed yet (svg)'),
+                ),
+              );
+            }
+
+            return Padding(
+              padding: EdgeInsets.all(8.0),
+              child: SvgPicture.string(
+                data,
+                placeholderBuilder: (_) => Container(
+                  color: Colors.lightBlueAccent,
+                  child: Center(
+                    child: Text('parsing data(svg)'),
+                  ),
                 ),
               ),
             );

@@ -24,6 +24,8 @@ dependencies:
   hand_signature:
     path: ../
 
+  flutter_svg: ^2.0.0+1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
