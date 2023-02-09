@@ -59,18 +59,9 @@ There are more ways and more formats how to export signature, most used ones are
     
     control.importData(json);
 ```
-SVG: SignatureDrawType **shape** generates reasonably small file and is read well by all programs. On the other side **arc** generates really big svg file and some programs can have hard times handling so much objects. **Line** is simple Bezier Curve.\
-Image: Export to image supports **ImageByteFormat** and provides png or raw rgba data.\
-Json/Map: Exports current state - raw data that can be used later to restore state.
+**Svg**: SignatureDrawType **shape** generates reasonably small file and is read well by all programs. On the other side **arc** generates really big svg file and some programs can have hard times handling so much objects. **Line** is simple Bezier Curve.\
+**Image**: Export to image supports **ImageByteFormat** and provides png or raw rgba data.\
+**Json/Map**: Exports current state - raw data that can be used later to restore state.
 
 **Parsing and drawing saved SVG**\
-Exported **svg** is possible to display in another lib like: [flutter_svg](https://pub.dev/packages/flutter_svg) widget.
-
----
-
-**Contribution**\
-Any contribution is highly welcomed.\
-Library is in good condition, but still in early development.\
-Mainly to improve smoothing and line weight to better match real signature.\
-Performance can be always better..\
-Also currently there are no tests or documentation.
+Exported **svg** String is possible to display in another lib like: [flutter_svg](https://pub.dev/packages/flutter_svg).
