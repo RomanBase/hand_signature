@@ -309,27 +309,7 @@ class PathUtil {
     return output;
   }
 
-  static List<Path> parseDrawable(DrawableParent root) {
-    final list = <Path>[];
-
-    _parseDrawableRoot(root, list);
-
-    return PathUtil.translatePaths(list, -PathUtil.pathBounds(list).topLeft);
-  }
-
-  static _parseDrawableRoot(DrawableParent root, List<Path> output) {
-    if (root.children != null) {
-      root.children!.forEach((drawable) {
-        if (drawable is DrawableShape) {
-          output.add(drawable.path);
-        } else if (drawable is DrawableParent) {
-          _parseDrawableRoot(drawable, output);
-        }
-      });
-    }
-  }
-
-  static Size getDrawableSize(DrawableRoot root) => root.viewport.size;
+  static Size getDrawableSize(PictureInfo root) => root.size;
 
   static Path toShapePath(List<CubicLine> lines, double size, double maxSize) {
     assert(lines.length > 0);

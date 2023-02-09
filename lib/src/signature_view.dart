@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:flutter_svg/parser.dart';
+import 'package:vector_graphics/vector_graphics_compat.dart';
 
 import '../signature.dart';
 import 'utils.dart';
@@ -86,7 +86,7 @@ class HandSignature extends StatelessWidget {
 /// Wraps [DrawableSignaturePainter] to paint svg [Drawable].
 class HandSignatureView extends StatelessWidget {
   /// Svg data to draw.
-  final Drawable? data;
+  final PictureInfo? data;
 
   /// Path color.
   final Color? color;
@@ -130,6 +130,7 @@ class HandSignatureView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final data = this.data;
     if (data == null) {
       return placeholder ?? Container(color: Colors.transparent);
     }
@@ -140,10 +141,10 @@ class HandSignatureView extends StatelessWidget {
         fit: BoxFit.contain,
         alignment: Alignment.center,
         child: SizedBox.fromSize(
-          size: PathUtil.getDrawableSize(data as DrawableRoot),
+          size: PathUtil.getDrawableSize(data),
           child: CustomPaint(
             painter: DrawableSignaturePainter(
-              drawable: data as DrawableParent,
+              drawable: data,
               color: color,
               strokeWidth: strokeWidth,
             ),
@@ -177,7 +178,7 @@ class _HandSignatureViewSvg extends StatefulWidget {
 
 /// State of [_HandSignatureViewSvg].
 class _HandSignatureViewSvgState extends State<_HandSignatureViewSvg> {
-  DrawableParent? drawable;
+  PictureInfo? drawable;
 
   @override
   void initState() {
@@ -191,8 +192,7 @@ class _HandSignatureViewSvgState extends State<_HandSignatureViewSvg> {
       drawable = null;
     } else {
       try {
-        final parser = SvgParser();
-        drawable = await parser.parse(data);
+        drawable = await vg.loadPicture(SvgStringLoader(data), null);
       } catch (err) {
         print(err.toString());
       }
