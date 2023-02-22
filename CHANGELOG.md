@@ -1,3 +1,6 @@
+## [3.0.1] - Fit
+Resolve vertices scaling with `fit` flag in export.\
+Rename some properties to unify naming across library.
 ## [3.0.0] - Dependency
 Removed dependency on `flutter_svg` and removed `HandSignatureView`.
 ## [2.3.0] - Import/Export current state (map/json)

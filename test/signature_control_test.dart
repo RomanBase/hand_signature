@@ -20,7 +20,7 @@ void main() {
   control.startPath(OffsetPoint(dx: 30.0, dy: 30.0, timestamp: 25));
   control.closePath();
 
-  // json string based on above mock data
+  // json string representing above mock data
   final json =
       '[[{"x":0.0,"y":0.0,"t":1},{"x":10.0,"y":10.0,"t":10},{"x":20.0,"y":20.0,"t":15},{"x":30.0,"y":20.0,"t":20}],[{"x":30.0,"y":30.0,"t":25}]]';
 

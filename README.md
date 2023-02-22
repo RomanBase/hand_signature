@@ -24,8 +24,8 @@ With **HandSignatureControl** and **HandSignature** is possible to tweak some dr
     final widget = HandSignature(
       control: control,
       color: Colors.blueGrey,
-      width: 1.0,
-      maxWidth: 10.0,
+      strokeWidth: 1.0,
+      maxStrokeWidth: 10.0,
       type: SignatureDrawType.shape,
     );
 ```
@@ -39,8 +39,8 @@ With **HandSignatureControl** and **HandSignature** is possible to tweak some dr
 **HandSignature** sets up visual style of signature curve.
 - control: processes input, handles math and stores raw data.
 - color: just color of line.
-- width: minimal width of line. Width at maximum swing speed (clamped by velocityRange).
-- maxWidth: maximum width of line. Width at slowest swing speed.
+- strokeWidth: minimal width of line. Width at maximum swing speed (clamped by velocityRange).
+- maxStrokeWidth: maximum width of line. Width at slowest swing speed.
 - type: draw type of curve. Default and main draw type is **shape** - not so nice as **arc**, but has better performance. And **line** is simple path with uniform stroke width. 
   - line: basic Bezier line with best performance.
   - shape: like Ink drawn signature with still pretty good performance.
