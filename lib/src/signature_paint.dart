@@ -14,10 +14,10 @@ class HandSignaturePaint extends StatefulWidget {
   final Color color;
 
   /// Minimal size of path.
-  final double width;
+  final double strokeWidth;
 
   /// Maximal size of path.
-  final double maxWidth;
+  final double maxStrokeWidth;
 
   /// Path type.
   final SignatureDrawType type;
@@ -30,10 +30,10 @@ class HandSignaturePaint extends StatefulWidget {
   const HandSignaturePaint({
     Key? key,
     required this.control,
-    this.color: Colors.black,
-    this.width: 1.0,
-    this.maxWidth: 10.0,
-    this.type: SignatureDrawType.shape,
+    this.color = Colors.black,
+    this.strokeWidth = 1.0,
+    this.maxStrokeWidth = 10.0,
+    this.type = SignatureDrawType.shape,
     this.onSize,
   }) : super(key: key);
 
@@ -50,8 +50,8 @@ class _HandSignaturePaintState extends State<HandSignaturePaint> {
 
     widget.control.params = SignaturePaintParams(
       color: widget.color,
-      strokeWidth: widget.width,
-      maxStrokeWidth: widget.maxWidth,
+      strokeWidth: widget.strokeWidth,
+      maxStrokeWidth: widget.maxStrokeWidth,
     );
 
     widget.control.addListener(_updateState);
@@ -77,8 +77,8 @@ class _HandSignaturePaintState extends State<HandSignaturePaint> {
       painter: PathSignaturePainter(
         paths: widget.control.paths,
         color: widget.color,
-        width: widget.width,
-        maxWidth: widget.maxWidth,
+        width: widget.strokeWidth,
+        maxWidth: widget.maxStrokeWidth,
         type: widget.type,
         onSize: widget.onSize,
       ),

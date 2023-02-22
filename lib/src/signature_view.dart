@@ -70,8 +70,8 @@ class HandSignature extends StatelessWidget {
         child: HandSignaturePaint(
           control: control,
           color: color,
-          width: width,
-          maxWidth: maxWidth,
+          strokeWidth: width,
+          maxStrokeWidth: maxWidth,
           type: type,
           onSize: control.notifyDimension,
         ),
@@ -93,10 +93,9 @@ class _SingleGestureRecognizer extends OneSequenceGestureRecognizer {
 
   _SingleGestureRecognizer({
     Object? debugOwner,
-    PointerDeviceKind? kind,
   }) : super(
           debugOwner: debugOwner,
-          kind: kind,
+          supportedDevices: PointerDeviceKind.values.toSet(),
         );
 
   @override

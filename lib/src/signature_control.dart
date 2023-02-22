@@ -29,9 +29,9 @@ class SignaturePaintParams {
   /// [strokeWidth] - minimal width of line.
   /// [maxStrokeWidth] - maximal width of line.
   const SignaturePaintParams({
-    this.color: Colors.black,
-    this.strokeWidth: 1.0,
-    this.maxStrokeWidth: 10.0,
+    this.color = Colors.black,
+    this.strokeWidth = 1.0,
+    this.maxStrokeWidth = 10.0,
   });
 }
 
@@ -98,7 +98,7 @@ class OffsetPoint extends Offset {
   }
 
   @override
-  int get hashCode => hashValues(super.hashCode, timestamp);
+  int get hashCode => Object.hash(super.hashCode, timestamp);
 }
 
 /// Line between two points. Curve of this line is controlled with other two points.
@@ -167,8 +167,8 @@ class CubicLine extends Offset {
     required this.end,
     Offset? upStartVector,
     Offset? upEndVector,
-    this.startSize: 0.0,
-    this.endSize: 0.0,
+    this.startSize = 0.0,
+    this.endSize = 0.0,
   }) : super(start.dx, start.dy) {
     _upStartVector = upStartVector;
     _upEndVector = upEndVector;
@@ -204,7 +204,7 @@ class CubicLine extends Offset {
   /// 0 - fastest, raw accuracy.
   /// 1 - slowest, most accurate.
   /// Returns length of curve.
-  double length({double accuracy: 0.1}) {
+  double length({double accuracy = 0.1}) {
     final steps = (accuracy * 100).toInt();
 
     if (steps <= 1) {
@@ -238,13 +238,13 @@ class CubicLine extends Offset {
   }
 
   /// Velocity along this line.
-  double velocity({double accuracy: 0.0}) => start.timestamp != end.timestamp
+  double velocity({double accuracy = 0.0}) => start.timestamp != end.timestamp
       ? length(accuracy: accuracy) / (end.timestamp - start.timestamp)
       : 0.0;
 
   /// Combines line velocity with [inVelocity] based on [velocityRatio].
   double combineVelocity(double inVelocity,
-      {double velocityRatio: 0.65, double maxFallOff: 1.0}) {
+      {double velocityRatio = 0.65, double maxFallOff = 1.0}) {
     final value =
         (_velocity * velocityRatio) + (inVelocity * (1.0 - velocityRatio));
 
@@ -268,7 +268,8 @@ class CubicLine extends Offset {
     ..cubicTo(cpStart.dx, cpStart.dy, cpEnd.dx, cpEnd.dy, end.dx, end.dy);
 
   /// Converts this line to [CubicArc].
-  List<CubicArc> toArc(double size, double deltaSize, {double precision: 0.5}) {
+  List<CubicArc> toArc(double size, double deltaSize,
+      {double precision = 0.5}) {
     final list = <CubicArc>[];
 
     final steps = (_distance * precision).floor().clamp(1, 30);
@@ -345,8 +346,8 @@ class CubicLine extends Offset {
   static Offset softCP(OffsetPoint current,
       {OffsetPoint? previous,
       OffsetPoint? next,
-      bool reverse: false,
-      double smoothing: 0.65}) {
+      bool reverse = false,
+      double smoothing = 0.65}) {
     assert(smoothing >= 0.0 && smoothing <= 1.0);
 
     previous ??= current;
@@ -421,7 +422,7 @@ class CubicArc extends Offset {
   CubicArc({
     required Offset start,
     required this.location,
-    this.size: 1.0,
+    this.size = 1.0,
   }) : super(start.dx, start.dy);
 
   @override
@@ -501,8 +502,8 @@ class CubicPath {
   /// [threshold] - Distance between two control points.
   /// [smoothRatio] - Ratio of line smoothing.
   CubicPath({
-    this.threshold: 3.0,
-    this.smoothRatio: 0.65,
+    this.threshold = 3.0,
+    this.smoothRatio = 0.65,
   });
 
   /// Adds line to path.
@@ -556,7 +557,7 @@ class CubicPath {
 
   /// Starts path at given [point].
   /// Must be called as first, before [begin], [end].
-  void begin(Offset point, {double velocity: 0.0}) {
+  void begin(Offset point, {double velocity = 0.0}) {
     _points.add(point is OffsetPoint ? point : OffsetPoint.from(point));
     _currentVelocity = velocity;
   }
@@ -621,7 +622,7 @@ class CubicPath {
     }
 
     if (_points.length < 3) {
-      if (_points.length == 1) {
+      if (_points.length == 1 || _points[0].distanceTo(points[1]) == 0.0) {
         _addDot(CubicLine(
           start: _points[0],
           cpStart: _points[0],
@@ -629,14 +630,12 @@ class CubicPath {
           end: _points[0],
         ));
       } else {
-        if (_points[0].distanceTo(points[1]) > 0.0) {
-          _addLine(CubicLine(
-            start: _points[0],
-            cpStart: _points[0],
-            cpEnd: _points[1],
-            end: _points[1],
-          ));
-        }
+        _addLine(CubicLine(
+          start: _points[0],
+          cpStart: _points[0],
+          cpEnd: _points[1],
+          end: _points[1],
+        ));
       }
     } else {
       final i = _points.length - 3;
@@ -768,9 +767,9 @@ class HandSignatureControl extends ChangeNotifier {
   /// [smoothRatio] smoothing ratio of curved parts.
   /// [velocityRange] controls velocity speed and dampening between points (only Shape and Arc drawing types using this property to control line width). aka how fast si signature drawn..
   HandSignatureControl({
-    this.threshold: 3.0,
-    this.smoothRatio: 0.65,
-    this.velocityRange: 2.0,
+    this.threshold = 3.0,
+    this.smoothRatio = 0.65,
+    this.velocityRange = 2.0,
   })  : assert(threshold > 0.0),
         assert(smoothRatio > 0.0 && smoothRatio <= 1.0),
         assert(velocityRange > 0.0);
@@ -807,7 +806,7 @@ class HandSignatureControl extends ChangeNotifier {
   }
 
   /// Closes active path at given [point].
-  void closePath({Offset? point}) {
+  void closePath([Offset? point]) {
     assert(hasActivePath);
 
     if (!_activePath!.end(point: point)) {
@@ -942,16 +941,15 @@ class HandSignatureControl extends ChangeNotifier {
   /// Converts data to [svg] String.
   /// [type] - data structure.
   String? toSvg({
-    SignatureDrawType type: SignatureDrawType.shape,
-    bool wrapSignature: false,
-    Size? size,
-    double border: 0.0,
+    SignatureDrawType type = SignatureDrawType.shape,
+    int width = 512,
+    int height = 256,
+    double border = 0.0,
     Color? color,
     double? strokeWidth,
     double? maxStrokeWidth,
+    bool fit = false,
   }) {
-    assert(wrapSignature || size != null);
-
     if (!isFilled) {
       return null;
     }
@@ -966,8 +964,12 @@ class HandSignatureControl extends ChangeNotifier {
     strokeWidth ??= params!.strokeWidth;
     maxStrokeWidth ??= params!.maxStrokeWidth;
 
-    final bounds = PathUtil.boundsOf(_offsets);
-    final rect = _getSvgRect(wrapSignature, size, bounds);
+    final bounds = PathUtil.boundsOf(_offsets, radius: maxStrokeWidth * 0.5);
+    final fitBox =
+        bounds.size.scaleToFit(Size(width.toDouble(), height.toDouble()));
+    final rect = fit
+        ? Rect.fromLTWH(0.0, 0.0, fitBox.width, fitBox.height)
+        : Rect.fromLTWH(0.0, 0.0, width.toDouble(), height.toDouble());
 
     if (type == SignatureDrawType.line || type == SignatureDrawType.shape) {
       final data = PathUtil.fillData(
@@ -977,15 +979,12 @@ class HandSignatureControl extends ChangeNotifier {
         border: maxStrokeWidth + border,
       );
 
-      return type == SignatureDrawType.line
-          ? _exportPathSvg(data, rect.size, color, strokeWidth)
-          : _exportShapeSvg(
-              data,
-              rect.size,
-              color,
-              strokeWidth,
-              maxStrokeWidth,
-            );
+      if (type == SignatureDrawType.line) {
+        return _exportPathSvg(data, rect.size, color, strokeWidth);
+      } else {
+        return _exportShapeSvg(
+            data, rect.size, color, strokeWidth, maxStrokeWidth);
+      }
     } else {
       final data = PathUtil.fill(
         _arcs,
@@ -995,18 +994,6 @@ class HandSignatureControl extends ChangeNotifier {
       );
 
       return _exportArcSvg(data, rect.size, color, strokeWidth, maxStrokeWidth);
-    }
-  }
-
-  Rect _getSvgRect(bool wrapSignature, Size? size, Rect bounds) {
-    if (wrapSignature && size != null) {
-      final newSize = bounds.size.scaleToFit(size);
-
-      return Rect.fromLTRB(0, 0, newSize.width, newSize.height);
-    } else if (wrapSignature) {
-      return bounds;
-    } else {
-      return Rect.fromLTRB(0.0, 0.0, size!.width, size.height);
     }
   }
 
@@ -1140,14 +1127,14 @@ class HandSignatureControl extends ChangeNotifier {
   ///
   /// If [fit] is enabled, the path will be normalized and scaled to fit given [width] and [height].
   Picture? toPicture({
-    int width: 512,
-    int height: 256,
+    int width = 512,
+    int height = 256,
     Color? color,
     Color? background,
-    double? size,
-    double? maxSize,
-    double? border,
-    bool fit: true,
+    double? strokeWidth,
+    double? maxStrokeWidth,
+    double border = 0.0,
+    bool fit = true,
   }) {
     if (!isFilled) {
       return null;
@@ -1160,12 +1147,6 @@ class HandSignatureControl extends ChangeNotifier {
       height.toDouble(),
     );
 
-    final canvasRect = Rect.fromLTRB(0, 0, _areaSize.width, _areaSize.height);
-    final data = fit
-        ? PathUtil.fill(_arcs, pictureRect, border: border)
-        : PathUtil.fill(_arcs, pictureRect, bound: canvasRect, border: border);
-    final path = CubicPath().._arcs.addAll(data);
-
     params ??= SignaturePaintParams(
       color: Colors.black,
       strokeWidth: 1.0,
@@ -1173,15 +1154,31 @@ class HandSignatureControl extends ChangeNotifier {
     );
 
     color ??= params!.color;
-    size ??= params!.strokeWidth;
-    maxSize ??= params!.maxStrokeWidth;
+    strokeWidth ??= params!.strokeWidth;
+    maxStrokeWidth ??= params!.maxStrokeWidth;
+
+    final canvasRect = Rect.fromLTRB(0, 0, _areaSize.width, _areaSize.height);
+    final data = fit
+        ? PathUtil.fill(
+            _arcs,
+            pictureRect,
+            radius: maxStrokeWidth * 0.5,
+            border: border,
+          )
+        : PathUtil.fill(
+            _arcs,
+            pictureRect,
+            bound: canvasRect,
+            border: border,
+          );
+    final path = CubicPath().._arcs.addAll(data);
 
     final recorder = PictureRecorder();
     final painter = PathSignaturePainter(
       paths: [path],
       color: color,
-      width: size,
-      maxWidth: maxSize,
+      width: strokeWidth,
+      maxWidth: maxStrokeWidth,
       type: SignatureDrawType.arc,
     );
 
@@ -1206,23 +1203,23 @@ class HandSignatureControl extends ChangeNotifier {
   ///
   /// If [fit] is enabled, the path will be normalized and scaled to fit given [width] and [height].
   Future<ByteData?> toImage({
-    int width: 512,
-    int height: 256,
+    int width = 512,
+    int height = 256,
     Color? color,
     Color? background,
-    double? size,
-    double? maxSize,
-    double? border,
-    ImageByteFormat format: ImageByteFormat.png,
-    bool fit: true,
+    double? strokeWidth,
+    double? maxStrokeWidth,
+    double border = 32.0,
+    ImageByteFormat format = ImageByteFormat.png,
+    bool fit = false,
   }) async {
     final image = await toPicture(
       width: width,
       height: height,
       color: color,
       background: background,
-      size: size,
-      maxSize: maxSize,
+      strokeWidth: strokeWidth,
+      maxStrokeWidth: maxStrokeWidth,
       border: border,
       fit: fit,
     )?.toImage(width, height);
