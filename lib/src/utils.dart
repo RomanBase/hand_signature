@@ -67,7 +67,8 @@ extension SizeExt on Size {
 
 //TODO: clean up
 class PathUtil {
-  static Rect bounds(List<Offset> data) {
+  static Rect bounds(List<Offset> data,
+      {double minSize = 2.0, double radius = 0.0}) {
     double left = data[0].dx;
     double top = data[0].dy;
     double right = data[0].dx;
@@ -90,10 +91,27 @@ class PathUtil {
       }
     });
 
-    return Rect.fromLTRB(left, top, right, bottom);
+    final hSize = right - left;
+    final vSize = bottom - top;
+
+    if (hSize < minSize) {
+      final dif = (minSize - hSize) * 0.5;
+      left -= dif;
+      right += dif;
+    }
+
+    if (vSize < minSize) {
+      final dif = (minSize - vSize) * 0.5;
+      top -= dif;
+      bottom += dif;
+    }
+
+    return Rect.fromLTRB(
+        left - radius, top - radius, right + radius, bottom + radius);
   }
 
-  static Rect boundsOf(List<List<Offset>> data) {
+  static Rect boundsOf(List<List<Offset>> data,
+      {double minSize = 2.0, double radius = 0.0}) {
     double left = data[0][0].dx;
     double top = data[0][0].dy;
     double right = data[0][0].dx;
@@ -116,7 +134,23 @@ class PathUtil {
           }
         }));
 
-    return Rect.fromLTRB(left, top, right, bottom);
+    final hSize = right - left;
+    final vSize = bottom - top;
+
+    if (hSize < minSize) {
+      final dif = (minSize - hSize) * 0.5;
+      left -= dif;
+      right += dif;
+    }
+
+    if (vSize < minSize) {
+      final dif = (minSize - vSize) * 0.5;
+      top -= dif;
+      bottom += dif;
+    }
+
+    return Rect.fromLTRB(
+        left - radius, top - radius, right + radius, bottom + radius);
   }
 
   static List<T> translate<T extends Offset>(List<T> data, Offset location) {
@@ -154,14 +188,12 @@ class PathUtil {
     return output;
   }
 
-  static List<T> normalize<T extends Offset>(List<T> data,
-      {Rect? bound, double? border}) {
+  static List<T> normalize<T extends Offset>(List<T> data, {Rect? bound}) {
     bound ??= bounds(data);
-    border ??= 0.0;
 
     return scale<T>(
-      translate<T>(data, -bound.topLeft + Offset(border, border)),
-      1.0 / (max(bound.width, bound.height) + border * 2.0),
+      translate<T>(data, -bound.topLeft),
+      1.0 / max(bound.width, bound.height),
     );
   }
 
@@ -178,36 +210,36 @@ class PathUtil {
   }
 
   static List<T> fill<T extends Offset>(List<T> data, Rect rect,
-      {Rect? bound, double? border}) {
-    bound ??= bounds(data);
-    border ??= 32.0;
+      {double radius = 0.0, Rect? bound, double border = 32.0}) {
+    bound ??= bounds(data, radius: radius);
+    border *= 2.0;
 
-    final outputSize = rect.size;
-    final sourceSize = bound;
+    final outputSize = Size(rect.width - border, rect.height - border);
+    final sourceSize = Size(bound.width, bound.height);
     Size destinationSize;
 
-    if (outputSize.width / outputSize.height >
-        sourceSize.width / sourceSize.height) {
-      destinationSize = Size(
-          sourceSize.width * outputSize.height / sourceSize.height,
-          outputSize.height);
+    final wr = outputSize.width / sourceSize.width;
+    final hr = outputSize.height / sourceSize.height;
+
+    if (wr < hr) {
+      //scale by width
+      destinationSize = Size(outputSize.width, sourceSize.height * wr);
     } else {
-      destinationSize = Size(outputSize.width,
-          sourceSize.height * outputSize.width / sourceSize.width);
+      //scale by height
+      destinationSize = Size(sourceSize.width * hr, outputSize.height);
     }
 
-    destinationSize = Size(destinationSize.width - border * 2.0,
-        destinationSize.height - border * 2.0);
-    final borderSize = Offset(rect.width - destinationSize.width,
-            rect.height - destinationSize.height - border) *
+    final borderSize = Offset(outputSize.width - destinationSize.width + border,
+            outputSize.height - destinationSize.height + border) *
         0.5;
 
     return translate<T>(
-        scale<T>(
-          normalize<T>(data, bound: bound),
-          max(destinationSize.width, destinationSize.height),
-        ),
-        borderSize);
+      scale<T>(
+        normalize<T>(data, bound: bound),
+        max(destinationSize.width, destinationSize.height),
+      ),
+      borderSize,
+    );
   }
 
   static List<List<T>> fillData<T extends Offset>(List<List<T>> data, Rect rect,

@@ -83,10 +83,8 @@ class MyApp extends StatelessWidget {
                               onPressed: () async {
                                 svg.value = control.toSvg(
                                   color: Colors.blueGrey,
-                                  size: Size(512, 256),
-                                  strokeWidth: 2.0,
-                                  maxStrokeWidth: 15.0,
                                   type: SignatureDrawType.shape,
+                                  fit: true,
                                 );
 
                                 rawImage.value = await control.toImage(
@@ -96,8 +94,9 @@ class MyApp extends StatelessWidget {
                                 );
 
                                 rawImageFit.value = await control.toImage(
-                                  color: Colors.blueAccent,
+                                  color: Colors.black,
                                   background: Colors.greenAccent,
+                                  fit: true,
                                 );
                               },
                               child: Text('export'),
@@ -172,8 +171,9 @@ class MyApp extends StatelessWidget {
                 ),
               );
             } else {
-              return Padding(
+              return Container(
                 padding: EdgeInsets.all(8.0),
+                color: Colors.orange,
                 child: Image.memory(data.buffer.asUint8List()),
               );
             }
