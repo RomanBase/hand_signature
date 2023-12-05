@@ -800,7 +800,7 @@ class HandSignatureControl extends ChangeNotifier {
   void alterPath(Offset point) {
     assert(hasActivePath);
 
-    _activePath!.add(point);
+    _activePath?.add(point);
 
     notifyListeners();
   }
@@ -809,7 +809,9 @@ class HandSignatureControl extends ChangeNotifier {
   void closePath([Offset? point]) {
     assert(hasActivePath);
 
-    if (!_activePath!.end(point: point)) {
+    final valid = _activePath?.end(point: point);
+
+    if (valid == false) {
       _paths.removeLast();
     }
 
