@@ -114,5 +114,20 @@ void main() {
       // check equality of individual OffsetPoints of CubePaths
       expect(controlMap.equals(control), isTrue);
     });
+
+    test('image', () async {
+      final controlImage = HandSignatureControl();
+
+      controlImage.importData(control.toMap());
+      controlImage.notifyDimension(Size(1280, 720));
+
+      final image = await controlImage.toImage();
+
+      expect(image, isNotNull);
+
+      final data = image!.buffer.asUint8List();
+
+      expect(data, isNotNull);
+    });
   });
 }

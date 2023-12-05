@@ -901,6 +901,7 @@ class HandSignatureControl extends ChangeNotifier {
       return false;
     }
 
+    //TODO: iOS device holds pointer during rotation
     if (hasActivePath) {
       closePath();
     }
