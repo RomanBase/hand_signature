@@ -24,8 +24,8 @@ With **HandSignatureControl** and **HandSignature** is possible to tweak some dr
     final widget = HandSignature(
       control: control,
       color: Colors.blueGrey,
-      strokeWidth: 1.0,
-      maxStrokeWidth: 10.0,
+      width: 1.0,
+      maxWidth: 10.0,
       type: SignatureDrawType.shape,
     );
 ```
