@@ -20,6 +20,11 @@ class HandSignature extends StatelessWidget {
   /// Path type.
   final SignatureDrawType type;
 
+  /// The kind of pointer device to recognize, e.g., touch, stylus.
+  /// use [PointerDeviceKind.stylus] for example
+  /// If null, it accepts all pointer devices.
+  final PointerDeviceKind? inputDeviceType;
+
   /// Callback when path drawing starts.
   final VoidCallback? onPointerDown;
 
@@ -36,6 +41,7 @@ class HandSignature extends StatelessWidget {
     this.type = SignatureDrawType.shape,
     this.onPointerDown,
     this.onPointerUp,
+    this.inputDeviceType,
   }) : super(key: key);
 
   void _startPath(Offset point) {
@@ -61,6 +67,11 @@ class HandSignature extends StatelessWidget {
               GestureRecognizerFactoryWithHandlers<_SingleGestureRecognizer>(
             () => _SingleGestureRecognizer(debugOwner: this),
             (instance) {
+              if (inputDeviceType != null) {
+                instance.supportedDevices = <PointerDeviceKind>{
+                  inputDeviceType!
+                };
+              }
               instance.onStart = (position) => _startPath(position);
               instance.onUpdate = (position) => control.alterPath(position);
               instance.onEnd = (position) => _endPath(position);

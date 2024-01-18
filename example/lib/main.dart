@@ -53,6 +53,7 @@ class MyApp extends StatelessWidget {
                                     child: HandSignature(
                                       control: control,
                                       type: SignatureDrawType.shape,
+                                      // inputDeviceType: PointerDeviceKind.stylus,
                                     ),
                                   ),
                                   CustomPaint(
