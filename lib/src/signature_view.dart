@@ -20,6 +20,16 @@ class HandSignature extends StatelessWidget {
   /// Path type.
   final SignatureDrawType type;
 
+  /// The set of pointer device types to recognize, e.g., touch, stylus.
+  /// Example:
+  /// ```
+  /// supportedDevices: {
+  ///   PointerDeviceKind.stylus,
+  /// }
+  /// ```
+  /// If null, it accepts all pointer devices.
+  final Set<PointerDeviceKind>? supportedDevices;
+
   /// Callback when path drawing starts.
   final VoidCallback? onPointerDown;
 
@@ -36,6 +46,7 @@ class HandSignature extends StatelessWidget {
     this.type = SignatureDrawType.shape,
     this.onPointerDown,
     this.onPointerUp,
+    this.supportedDevices,
   }) : super(key: key);
 
   void _startPath(Offset point) {
@@ -59,7 +70,8 @@ class HandSignature extends StatelessWidget {
         gestures: <Type, GestureRecognizerFactory>{
           _SingleGestureRecognizer:
               GestureRecognizerFactoryWithHandlers<_SingleGestureRecognizer>(
-            () => _SingleGestureRecognizer(debugOwner: this),
+            () => _SingleGestureRecognizer(
+                debugOwner: this, supportedDevices: supportedDevices),
             (instance) {
               instance.onStart = (position) => _startPath(position);
               instance.onUpdate = (position) => control.alterPath(position);
@@ -93,9 +105,11 @@ class _SingleGestureRecognizer extends OneSequenceGestureRecognizer {
 
   _SingleGestureRecognizer({
     Object? debugOwner,
+    Set<PointerDeviceKind>? supportedDevices,
   }) : super(
           debugOwner: debugOwner,
-          supportedDevices: PointerDeviceKind.values.toSet(),
+          supportedDevices:
+              supportedDevices ?? PointerDeviceKind.values.toSet(),
         );
 
   @override
