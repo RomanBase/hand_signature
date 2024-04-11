@@ -99,7 +99,7 @@ class MyApp extends StatelessWidget {
 
                                 rawImageFit.value = await control.toImage(
                                   color: Colors.black,
-                                  background: Colors.greenAccent,
+                                  //background: Colors.greenAccent,
                                   fit: true,
                                 );
                               },
