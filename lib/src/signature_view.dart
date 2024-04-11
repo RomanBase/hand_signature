@@ -104,10 +104,9 @@ class _SingleGestureRecognizer extends OneSequenceGestureRecognizer {
   bool pointerActive = false;
 
   _SingleGestureRecognizer({
-    Object? debugOwner,
+    super.debugOwner,
     Set<PointerDeviceKind>? supportedDevices,
   }) : super(
-          debugOwner: debugOwner,
           supportedDevices:
               supportedDevices ?? PointerDeviceKind.values.toSet(),
         );

@@ -1,3 +1,5 @@
+## [3.0.3] - Updated Gesture Recognizer
+Now can specify input type - `PointerDeviceKind`.
 ## [3.0.1] - Fit
 Resolve vertices scaling with `fit` flag in export.\
 Rename some properties to unify naming across library.
@@ -24,5 +26,4 @@ Selection of 3 draw styles (shape, arc, line). Arc is still nicest, but has perf
 Support dot drawing based on last line size.\
 Minor performance updates.
 ## [0.5.0] - Alpha version of signature pad.
-
 Signature pad for smooth and real hand signatures.
