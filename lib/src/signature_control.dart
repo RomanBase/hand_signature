@@ -945,8 +945,8 @@ class HandSignatureControl extends ChangeNotifier {
   /// [type] - data structure.
   String? toSvg({
     SignatureDrawType type = SignatureDrawType.shape,
-    int width = 512,
-    int height = 256,
+    num width = 512,
+    num height = 256,
     double border = 0.0,
     Color? color,
     double? strokeWidth,
