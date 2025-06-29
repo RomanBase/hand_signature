@@ -5,7 +5,7 @@ import 'package:flutter/cupertino.dart';
 import '../signature.dart';
 
 extension ColorEx on Color {
-  String get hexValue => '#${value.toRadixString(16)}'.replaceRange(1, 3, '');
+  String get hexValue => '#${toARGB32().toRadixString(16)}'.replaceRange(1, 3, '');
 }
 
 extension OffsetEx on Offset {

@@ -37,7 +37,7 @@ class HandSignature extends StatelessWidget {
   final VoidCallback? onPointerUp;
 
   /// Draws [Path] based on input and stores data in [control].
-  HandSignature({
+  const HandSignature({
     Key? key,
     required this.control,
     this.color = Colors.black,

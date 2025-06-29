@@ -1,3 +1,4 @@
+## [3.1.0] - 
 ## [3.0.3] - Updated Gesture Recognizer
 Now can specify input type - `PointerDeviceKind`.
 ## [3.0.1] - Fit

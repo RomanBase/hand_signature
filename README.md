@@ -1,67 +1,116 @@
-A Flutter plugin providing Signature Pad for drawing smooth signatures. Library is written in pure Dart/Flutter environment to provide support for all platforms..\
-Easy to use library with variety of draw and export settings. Also supports SVG files.
+# Hand Signature
 
-![Structure](https://raw.githubusercontent.com/RomanBase/hand_signature/master/doc/signature.png)
+A Flutter plugin providing a Signature Pad for drawing smooth signatures. This library is written in a pure Dart/Flutter environment to provide support for all platforms. It's easy to use, with a variety of drawing and export settings, and also supports SVG files.
 
-Signature pad drawing is based on Cubic Bézier curves.\
-Offers to choose between performance and beauty mode.
+![Signature](https://raw.githubusercontent.com/RomanBase/hand_signature/master/doc/signature.png)
+
+The signature pad drawing is based on Cubic Bézier curves and offers a choice between performance and beauty modes.
 
 ---
 
-**Usage**
-```dart
-    import 'package:hand_signature/signature.dart';
-```
+## Features
 
-With **HandSignatureControl** and **HandSignature** is possible to tweak some drawing aspects like stroke width, smoothing ratio or velocity weight.
-```dart
-    final control = HandSignatureControl(
-      threshold: 3.0,
-      smoothRatio: 0.65,
-      velocityRange: 2.0,
-    );
+- **Cross-Platform:** Works on any platform supported by Flutter.
+- **Customizable:** Adjust stroke width, color, and smoothing.
+- **Multiple Drawing Types:** Choose between `line`, `shape`, and `arc` for different visual styles.
+- **Velocity-Based Stroke:** The thickness of the line can vary based on the drawing speed.
+- **Export Options:** Export signatures as PNG, SVG, or raw data (JSON/Map).
+- **Import/Export:** Save and load signature data.
 
-    final widget = HandSignature(
-      control: control,
-      color: Colors.blueGrey,
-      width: 1.0,
-      maxWidth: 10.0,
-      type: SignatureDrawType.shape,
-    );
-```
-
-**HandSignatureControl** sets up 'math' to control input touches and handles control points of signature curve.
-- threshold: (LP) controls minimal distance between two points - higher distance creates smoother curve, but less precise. Higher distance also creates bigger input draw lag.
-- smoothRatio: (0 - 1) controls how smooth curve will be - higher ratio creates smoother curve, but less precise. In most of cases are best results with values between 0.5 - 0.75.
-- velocityRange: (LP per millisecond) controls curve size based on distance and duration between two points. Thin line - fast move, thick line - slow move. With higher velocityRange user must swing faster to draw thinner line.
-- reverseVelocity: swaps stroke width. Thin line - slow move, thick line - fast move. Simply swaps min/max size based on velocity. 
-
-**HandSignature** sets up visual style of signature curve.
-- control: processes input, handles math and stores raw data.
-- color: just color of line.
-- strokeWidth: minimal width of line. Width at maximum swing speed (clamped by velocityRange).
-- maxStrokeWidth: maximum width of line. Width at slowest swing speed.
-- type: draw type of curve. Default and main draw type is **shape** - not so nice as **arc**, but has better performance. And **line** is simple path with uniform stroke width. 
-  - line: basic Bezier line with best performance.
-  - shape: like Ink drawn signature with still pretty good performance.
-  - arc: beauty mode for Ink styled signature.
 ---
 
-**Export**\
-Properties, like canvas size, stroke min/max width and color can be modified during export.\
-There are more ways and more formats how to export signature, most used ones are **svg** and **png** formats.
-```dart
-    final control = HandSignatureControl();
+## Usage
 
-    final svg = control.toSvg();
-    final png = control.toImage();
-    final json = control.toMap();
-    
-    control.importData(json);
+### 1. Add the dependency to your `pubspec.yaml`:
+
+```yaml
+dependencies:
+  hand_signature: ^<latest_version>
 ```
-**Svg**: SignatureDrawType **shape** generates reasonably small file and is read well by all programs. On the other side **arc** generates really big svg file and some programs can have hard times handling so much objects. **Line** is simple Bezier Curve.\
-**Image**: Export to image supports **ImageByteFormat** and provides png or raw rgba data.\
-**Json/Map**: Exports current state - raw data that can be used later to restore state.
 
-**Parsing and drawing saved SVG**\
-Exported **svg** String is possible to display in another lib like: [flutter_svg](https://pub.dev/packages/flutter_svg).
+### 2. Import the library:
+
+```dart
+import 'package:hand_signature/signature.dart';
+```
+
+### 3. Implement the Signature Pad:
+
+Use `HandSignatureControl` to manage the drawing logic and `HandSignature` to display the pad.
+
+```dart
+// Create a control instance
+final control = HandSignatureControl(
+  threshold: 3.0,
+  smoothRatio: 0.65,
+  velocityRange: 2.0,
+);
+
+// Create the signature pad widget
+HandSignature(
+  control: control,
+  color: Colors.blueGrey,
+  width: 1.0,
+  maxWidth: 10.0,
+  type: SignatureDrawType.shape,
+)
+```
+
+---
+
+## `HandSignatureControl`
+
+This class handles the "math" behind the signature, controlling input touches and managing the control points of the signature curve.
+
+- `threshold`: (LP) Controls the minimal distance between two points. A higher distance creates a smoother, but less precise, curve and may introduce a slight drawing lag.
+- `smoothRatio`: (0 - 1) Controls how smooth the curve will be. A higher ratio creates a smoother, but less precise, curve. The best results are typically between 0.5 and 0.75.
+- `velocityRange`: (LP per millisecond) Controls the curve size based on the distance and duration between two points. A thin line corresponds to a fast movement, while a thick line corresponds to a slow movement. With a higher `velocityRange`, the user must move the pointer faster to draw a thinner line.
+- `reverseVelocity`: Swaps the stroke width. A thin line will correspond to a slow movement, and a thick line to a fast movement.
+
+---
+
+## `HandSignature`
+
+This widget handles the visual style of the signature curve.
+
+- `control`: The `HandSignatureControl` that processes input and stores the raw data.
+- `color`: The color of the line.
+- `width`: The minimal width of the line (at maximum drawing speed).
+- `maxWidth`: The maximum width of the line (at slowest drawing speed).
+- `type`: The draw type of the curve.
+  - `line`: A basic Bezier line with the best performance.
+  - `shape`: An "ink" style signature with good performance.
+  - `arc`: A "beauty mode" for an ink-styled signature, which may be less performant.
+
+---
+
+## Exporting
+
+You can modify properties like canvas size, stroke width, and color during export. The most common export formats are SVG and PNG.
+
+```dart
+final control = HandSignatureControl();
+
+// Export to SVG
+final svg = control.toSvg();
+
+// Export to PNG
+final png = await control.toImage();
+
+// Export to raw data
+final json = control.toMap();
+
+// Import from raw data
+control.importData(json);
+```
+
+- **SVG**: 
+  - `shape`: Generates a reasonably small file that is well-supported by most programs.
+  - `arc`: Generates a larger SVG file, which some programs may struggle to handle.
+  - `line`: A simple Bezier curve.
+- **Image**: Export to an `Image` object, which can then be converted to PNG bytes.
+- **JSON/Map**: Export the current state as raw data, which can be used later to restore the signature.
+
+### Displaying a Saved SVG
+
+You can display an exported SVG string using a library like [flutter_svg](https://pub.dev/packages/flutter_svg).

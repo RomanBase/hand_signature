@@ -49,7 +49,7 @@ class PathSignaturePainter extends CustomPainter {
     ..strokeWidth = 0.0;
 
   /// [Path] painter.
-  PathSignaturePainter({
+  const PathSignaturePainter({
     required this.paths,
     this.color = Colors.black,
     this.width = 1.0,
@@ -132,7 +132,7 @@ class DebugSignaturePainterCP extends CustomPainter {
   final bool dot;
   final Color color;
 
-  DebugSignaturePainterCP({
+  const DebugSignaturePainterCP({
     required this.control,
     this.cp = false,
     this.cpStart = true,
