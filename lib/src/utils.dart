@@ -278,7 +278,7 @@ class PathUtil {
   static Path toPath(List<Offset> points) {
     final path = Path();
 
-    if (points.length > 0) {
+    if (points.isNotEmpty) {
       path.moveTo(points[0].dx, points[0].dy);
       points.forEach((point) => path.lineTo(point.dx, point.dy));
     }

@@ -461,7 +461,7 @@ class CubicPath {
 
   /// Adds line to path.
   void _addLine(CubicLine line) {
-    if (_lines.length == 0) {
+    if (_lines.isEmpty) {
       if (_currentVelocity == 0.0) {
         _currentVelocity = line._velocity;
       }
