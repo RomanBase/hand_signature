@@ -35,10 +35,50 @@ class SignaturePaintParams {
   });
 }
 
+class CubicPathSetup {
+  /// Distance between two control points.
+  final double threshold;
+
+  /// Ratio of line smoothing.
+  /// Don't have impact to performance. Values between 0 - 1.
+  /// [0] - no smoothing, no flattening.
+  /// [1] - best smoothing, but flattened.
+  /// Best results are between: 0.5 - 0.85.
+  final double smoothRatio;
+
+  final double velocityRange;
+
+  final Map<String, dynamic>? args;
+
+  const CubicPathSetup({
+    this.threshold = 3.0,
+    this.smoothRatio = 0.65,
+    this.velocityRange = 2.0,
+    this.args,
+  })  : assert(threshold > 0.0),
+        assert(smoothRatio > 0.0 && smoothRatio <= 1.0),
+        assert(velocityRange > 0.0);
+
+  factory CubicPathSetup.fromMap(Map<String, dynamic> data) => CubicPathSetup(
+        threshold: data['threshold'],
+        smoothRatio: data['smoothRatio'],
+        velocityRange: data['velocityRange'],
+        args: data['args'],
+      );
+
+  Map<String, dynamic> toMap() => {
+        'threshold': threshold,
+        'smoothRatio': smoothRatio,
+        'velocityRange': velocityRange,
+        if (args != null) 'args': args,
+      };
+}
+
 /// Extended [Offset] point with [timestamp].
 class OffsetPoint extends Offset {
   /// Timestamp of this point. Used to determine velocity to other points.
   final int timestamp;
+  final double? pressure;
 
   /// 2D point in canvas space.
   /// [timestamp] of this [Offset]. Used to determine velocity to other points.
@@ -46,6 +86,7 @@ class OffsetPoint extends Offset {
     required double dx,
     required double dy,
     required this.timestamp,
+    this.pressure,
   }) : super(dx, dy);
 
   factory OffsetPoint.from(Offset offset) => OffsetPoint(
@@ -54,16 +95,18 @@ class OffsetPoint extends Offset {
         timestamp: DateTime.now().millisecondsSinceEpoch,
       );
 
-  factory OffsetPoint.fromMap(Map<String, dynamic> map) => OffsetPoint(
-        dx: map['x'],
-        dy: map['y'],
-        timestamp: map['t'],
+  factory OffsetPoint.fromMap(Map<String, dynamic> data) => OffsetPoint(
+        dx: data['x'],
+        dy: data['y'],
+        timestamp: data['t'],
+        pressure: data['p'],
       );
 
   Map<String, dynamic> toMap() => {
         'x': dx,
         'y': dy,
         't': timestamp,
+        if (pressure != null) 'p': pressure,
       };
 
   /// Returns velocity between this and [other] - previous point.
@@ -75,6 +118,7 @@ class OffsetPoint extends Offset {
       dx: dx + translateX,
       dy: dy + translateY,
       timestamp: timestamp,
+      pressure: pressure,
     );
   }
 
@@ -84,6 +128,7 @@ class OffsetPoint extends Offset {
       dx: dx * scaleX,
       dy: dy * scaleY,
       timestamp: timestamp,
+      pressure: pressure,
     );
   }
 
@@ -353,8 +398,6 @@ class CubicLine extends Offset {
 
 /// Arc between two points.
 class CubicArc extends Offset {
-  static const _pi2 = math.pi * 2.0;
-
   /// End location of arc.
   final Offset location;
 
@@ -364,7 +407,7 @@ class CubicArc extends Offset {
   /// Arc path.
   Path get path => Path()
     ..moveTo(dx, dy)
-    ..arcToPoint(location, rotation: _pi2);
+    ..arcToPoint(location, rotation: pi2);
 
   /// Rectangle of start and end point.
   Rect get rect => Rect.fromPoints(this, location);
@@ -405,15 +448,7 @@ class CubicPath {
   /// [CubicArc] representation of path.
   final _arcs = <CubicArc>[];
 
-  /// Distance between two control points.
-  final double threshold;
-
-  /// Ratio of line smoothing.
-  /// Don't have impact to performance. Values between 0 - 1.
-  /// [0] - no smoothing, no flattening.
-  /// [1] - best smoothing, but flattened.
-  /// Best results are between: 0.5 - 0.85.
-  final double smoothRatio;
+  final CubicPathSetup setup;
 
   /// Returns raw data of path.
   List<OffsetPoint> get points => _points;
@@ -436,12 +471,6 @@ class CubicPath {
   /// Checks if this Line is just dot.
   bool get isDot => lines.length == 1 && lines[0].isDot;
 
-  /// Unfinished path.
-  // Path? _temp;
-
-  /// Returns currently unfinished part of path.
-  // Path? get tempPath => _temp;
-
   /// Maximum possible velocity.
   double _maxVelocity = 1.0;
 
@@ -455,9 +484,10 @@ class CubicPath {
   /// [threshold] - Distance between two control points.
   /// [smoothRatio] - Ratio of line smoothing.
   CubicPath({
-    this.threshold = 3.0,
-    this.smoothRatio = 0.65,
-  });
+    this.setup = const CubicPathSetup(),
+  }) {
+    _maxVelocity = setup.velocityRange;
+  }
 
   /// Adds line to path.
   void _addLine(CubicLine line) {
@@ -520,7 +550,7 @@ class CubicPath {
 
     final nextPoint = point is OffsetPoint ? point : OffsetPoint.from(point);
 
-    if (_lastPoint == null || _lastPoint!.distanceTo(nextPoint) < threshold) {
+    if (_lastPoint == null || _lastPoint!.distanceTo(nextPoint) < setup.threshold) {
       return;
     }
 
@@ -542,14 +572,14 @@ class CubicPath {
       start,
       previous: prev,
       next: end,
-      smoothing: smoothRatio,
+      smoothing: setup.smoothRatio,
     );
 
     final cpEnd = CubicLine.softCP(
       end,
       previous: start,
       next: next,
-      smoothing: smoothRatio,
+      smoothing: setup.smoothRatio,
       reverse: true,
     );
 
@@ -648,17 +678,19 @@ class CubicPath {
 /// Controls signature drawing and line shape.
 /// Also handles export of finished signature.
 class HandSignatureControl extends ChangeNotifier {
-  /// Distance between two control points.
-  final double threshold;
-
-  /// Smoothing ratio of path.
-  final double smoothRatio;
-
-  /// Maximal velocity.
-  final double velocityRange;
-
   /// List of active paths.
   final _paths = <CubicPath>[];
+
+  late CubicPathSetup Function() setup;
+
+  /// Visual parameters of line painting.
+  SignaturePaintParams? params;
+
+  /// Currently unfinished path.
+  CubicPath? _activePath;
+
+  /// Canvas size.
+  Size _areaSize = Size.zero; //TODO: should be in SignaturePaintParams
 
   /// List of currently completed lines.
   List<CubicPath> get paths => _paths;
@@ -675,15 +707,6 @@ class HandSignatureControl extends ChangeNotifier {
   /// Returns list of all active CubicLine paths.
   List<CubicLine> get lines => _paths.expand((data) => data._lines).toList();
 
-  /// Currently unfinished path.
-  CubicPath? _activePath;
-
-  /// Visual parameters of line painting.
-  SignaturePaintParams? params;
-
-  /// Canvas size.
-  Size _areaSize = Size.zero;
-
   /// Checks if is there unfinished path.
   bool get hasActivePath => _activePath != null;
 
@@ -695,27 +718,29 @@ class HandSignatureControl extends ChangeNotifier {
   /// [smoothRatio] smoothing ratio of curved parts.
   /// [velocityRange] controls velocity speed and dampening between points (only Shape and Arc drawing types using this property to control line width). aka how fast si signature drawn..
   HandSignatureControl({
-    this.threshold = 3.0,
-    this.smoothRatio = 0.65,
-    this.velocityRange = 2.0,
-  })  : assert(threshold > 0.0),
-        assert(smoothRatio > 0.0 && smoothRatio <= 1.0),
-        assert(velocityRange > 0.0);
+    @Deprecated('Use {setup} or {initialSetup}') double threshold = 3.0,
+    @Deprecated('Use {setup} or {initialSetup}') double smoothRatio = 0.65,
+    @Deprecated('Use {setup} or {initialSetup}') double velocityRange = 2.0,
+    CubicPathSetup Function()? setup,
+    CubicPathSetup? initialSetup,
+  }) {
+    this.setup = setup ??
+        () =>
+            initialSetup ??
+            CubicPathSetup(
+              threshold: threshold,
+              smoothRatio: smoothRatio,
+              velocityRange: velocityRange,
+            );
+  }
 
-  factory HandSignatureControl.fromMap(Map<String, dynamic> data) => HandSignatureControl(
-        smoothRatio: data['smoothRatio'],
-        threshold: data['threshold'],
-        velocityRange: data['velocityRange'],
-      )..importData(data);
+  factory HandSignatureControl.fromMap(Map<String, dynamic> data) => HandSignatureControl()..import(data);
 
   /// Starts new line at given [point].
   void startPath(Offset point) {
     assert(!hasActivePath);
 
-    _activePath = CubicPath(
-      threshold: threshold,
-      smoothRatio: smoothRatio,
-    ).._maxVelocity = velocityRange;
+    _activePath = CubicPath(setup: setup.call());
 
     _activePath!.begin(point, velocity: _paths.isNotEmpty ? _paths.last._currentVelocity : 0.0);
 
@@ -746,8 +771,11 @@ class HandSignatureControl extends ChangeNotifier {
     notifyListeners();
   }
 
+  @Deprecated('User {addPath}')
+  void importPath(List<CubicPath> paths, [Size? bounds]) => addPath(paths, bounds);
+
   /// Imports given [paths] and alters current signature data.
-  void importPath(List<CubicPath> paths, [Size? bounds]) {
+  void addPath(List<CubicPath> paths, [Size? bounds]) {
     //TODO: check bounds
 
     if (bounds != null) {
@@ -760,34 +788,6 @@ class HandSignatureControl extends ChangeNotifier {
 
     _paths.addAll(paths);
     notifyListeners();
-  }
-
-  /// Expects [data] from [toMap].
-  void importData(Map data) {
-    final list = <CubicPath>[];
-
-    final bounds = Size(data['bounds']['width'], data['bounds']['height']);
-    final paths = data['paths'];
-    final threshold = data['threshold'];
-    final smoothRatio = data['smoothRatio'];
-    final velocityRange = data['velocityRange'];
-
-    for (final path in paths) {
-      final List points = List.from(path);
-
-      final cp = CubicPath(
-        threshold: threshold,
-        smoothRatio: smoothRatio,
-      ).._maxVelocity = velocityRange;
-
-      cp.begin(OffsetPoint.fromMap(points[0]));
-      points.skip(1).forEach((element) => cp.add(OffsetPoint.fromMap(element)));
-      cp.end();
-
-      list.add(cp);
-    }
-
-    importPath(list, bounds);
   }
 
   /// Removes last line.
@@ -849,17 +849,61 @@ class HandSignatureControl extends ChangeNotifier {
     return true;
   }
 
+  @Deprecated('User {import}')
+  void importData(Map data) => import(data);
+
+  /// Expects [data] from [toMap].
+  void import(Map data) {
+    final list = <CubicPath>[];
+
+    final v2 = (data['version'] ?? 1) == 2;
+    final bounds = Size(data['bounds']['width'], data['bounds']['height']);
+    final paths = data['paths'] as Iterable;
+    final setups = data['setup'] as Iterable?;
+
+    if (v2) {
+      assert(setups != null);
+      assert(paths.length == setups!.length);
+    } else {
+      final threshold = data['threshold'];
+      final smoothRatio = data['smoothRatio'];
+      final velocityRange = data['velocityRange'];
+
+      setup = () => CubicPathSetup(
+            threshold: threshold,
+            smoothRatio: smoothRatio,
+            velocityRange: velocityRange,
+          );
+    }
+
+    final count = paths.length;
+
+    for (int i = 0; i < count; i++) {
+      final points = List.from(paths.elementAt(i));
+      final setup = v2 ? CubicPathSetup.fromMap(setups!.elementAt(i)) : this.setup();
+
+      final cp = CubicPath(setup: setup);
+
+      cp.begin(OffsetPoint.fromMap(points[0]));
+      points.skip(1).forEach((element) => cp.add(OffsetPoint.fromMap(element)));
+      cp.end();
+
+      list.add(cp);
+    }
+
+    addPath(list, bounds);
+  }
+
   /// Converts dat to Map (json)
-  /// Exported data can be restored via [HandSignatureControl.fromMap] factory or via [importData] method.
+  /// Exported data can be restored via [HandSignatureControl.fromMap] factory or via [import] method.
   Map<String, dynamic> toMap() => {
+        'version': 2,
         'bounds': {
           'width': _areaSize.width,
           'height': _areaSize.height,
         },
         'paths': paths.map((p) => p.points.map((p) => p.toMap()).toList()).toList(),
-        'threshold': threshold,
-        'smoothRatio': smoothRatio,
-        'velocityRange': velocityRange,
+        'setup': paths.map((p) => p.setup.toMap()).toList(),
       };
 
   /// Converts data to [svg] String.
@@ -956,7 +1000,7 @@ class HandSignatureControl extends ChangeNotifier {
 
     data.forEach((arc) {
       final strokeSize = strokeWidth + (maxStrokeWidth - strokeWidth) * arc.size;
-      buffer.writeln('<path d="M ${arc.dx} ${arc.dy} A 0 0, ${CubicArc._pi2}, 0, 0, ${arc.location.dx} ${arc.location.dy}" stroke-width="$strokeSize" />');
+      buffer.writeln('<path d="M ${arc.dx} ${arc.dy} A 0 0, $pi2, 0, 0, ${arc.location.dx} ${arc.location.dy}" stroke-width="$strokeSize" />');
     });
 
     buffer.writeln('</g>');

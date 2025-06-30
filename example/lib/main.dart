@@ -9,17 +9,17 @@ import 'scroll_test.dart';
 
 void main() => runApp(MyApp());
 
-HandSignatureControl control = new HandSignatureControl(
-  threshold: 0.01,
-  smoothRatio: 0.65,
-  velocityRange: 2.0,
-);
+HandSignatureControl control = new HandSignatureControl();
 
 ValueNotifier<String?> svg = ValueNotifier<String?>(null);
 
 ValueNotifier<ByteData?> rawImage = ValueNotifier<ByteData?>(null);
 
 ValueNotifier<ByteData?> rawImageFit = ValueNotifier<ByteData?>(null);
+
+ValueNotifier<Map?> savedState = ValueNotifier<Map?>(null);
+
+const aspectRatio = 4 / 3;
 
 class MyApp extends StatelessWidget {
   bool get scrollTest => false;
@@ -41,10 +41,11 @@ class MyApp extends StatelessWidget {
                   children: <Widget>[
                     Column(
                       children: <Widget>[
+                        //Canvas
                         Expanded(
                           child: Center(
                             child: AspectRatio(
-                              aspectRatio: 2.0,
+                              aspectRatio: aspectRatio,
                               child: Stack(
                                 children: <Widget>[
                                   Container(
@@ -71,46 +72,69 @@ class MyApp extends StatelessWidget {
                             ),
                           ),
                         ),
-                        Row(
-                          children: <Widget>[
-                            CupertinoButton(
-                              onPressed: () {
-                                control.clear();
-                                svg.value = null;
-                                rawImage.value = null;
-                                rawImageFit.value = null;
-                              },
-                              child: Text('clear'),
-                            ),
-                            CupertinoButton(
-                              onPressed: () async {
-                                svg.value = control.toSvg(
-                                  color: Colors.blueGrey,
-                                  type: SignatureDrawType.shape,
-                                  fit: true,
-                                );
+                        //Buttons
+                        Align(
+                          alignment: Alignment.bottomLeft,
+                          child: Column(
+                            children: <Widget>[
+                              ValueListenableBuilder(
+                                  valueListenable: savedState,
+                                  builder: (context, value, _) {
+                                    return CupertinoButton(
+                                      onPressed: () {
+                                        if (value == null) {
+                                          savedState.value = control.toMap();
+                                          control.clear();
+                                          svg.value = null;
+                                          rawImage.value = null;
+                                          rawImageFit.value = null;
+                                        } else {
+                                          control.import(value);
+                                          savedState.value = null;
+                                        }
+                                      },
+                                      child: Text(value == null ? 'save state' : 'load state'),
+                                    );
+                                  }),
+                              CupertinoButton(
+                                onPressed: () async {
+                                  rawImage.value = await control.toImage(
+                                    color: Colors.blueAccent,
+                                    background: Colors.greenAccent,
+                                    fit: false,
+                                  );
 
-                                rawImage.value = await control.toImage(
-                                  color: Colors.blueAccent,
-                                  background: Colors.greenAccent,
-                                  fit: false,
-                                );
+                                  rawImageFit.value = await control.toImage(
+                                    color: Colors.black,
+                                    fit: true,
+                                  );
 
-                                rawImageFit.value = await control.toImage(
-                                  color: Colors.black,
-                                  //background: Colors.greenAccent,
-                                  fit: true,
-                                );
-                              },
-                              child: Text('export'),
-                            ),
-                          ],
+                                  svg.value = control.toSvg(
+                                    color: Colors.blueGrey,
+                                    type: SignatureDrawType.shape,
+                                    fit: true,
+                                  );
+                                },
+                                child: Text('export'),
+                              ),
+                              CupertinoButton(
+                                onPressed: () {
+                                  control.clear();
+                                  svg.value = null;
+                                  rawImage.value = null;
+                                  rawImageFit.value = null;
+                                },
+                                child: Text('clear'),
+                              ),
+                            ],
+                          ),
                         ),
                         SizedBox(
                           height: 16.0,
                         ),
                       ],
                     ),
+                    // Export preview
                     Align(
                       alignment: Alignment.bottomRight,
                       child: Column(

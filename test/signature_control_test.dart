@@ -109,7 +109,7 @@ void main() {
 
     test('map', () async {
       final controlMap = HandSignatureControl();
-      controlMap.importData(control.toMap());
+      controlMap.import(control.toMap());
 
       // check equality of individual OffsetPoints of CubePaths
       expect(controlMap.equals(control), isTrue);
@@ -118,7 +118,7 @@ void main() {
     test('image', () async {
       final controlImage = HandSignatureControl();
 
-      controlImage.importData(control.toMap());
+      controlImage.import(control.toMap());
       controlImage.notifyDimension(Size(1280, 720));
 
       final image = await controlImage.toImage();
