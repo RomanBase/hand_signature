@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../signature.dart';
 
+typedef _GestureEvent = Function(Offset position, double pressure);
+
 /// Wraps [HandSignaturePaint] to paint signature. And [RawGestureDetector] to send input to [HandSignatureControl].
 class HandSignature extends StatelessWidget {
   /// Controls path creation.
@@ -49,14 +51,14 @@ class HandSignature extends StatelessWidget {
     this.supportedDevices,
   }) : super(key: key);
 
-  void _startPath(Offset point) {
+  void _startPath(Offset point, double pressure) {
     if (!control.hasActivePath) {
       onPointerDown?.call();
       control.startPath(point);
     }
   }
 
-  void _endPath(Offset point) {
+  void _endPath(Offset point, double pressure) {
     if (control.hasActivePath) {
       control.closePath();
       onPointerUp?.call();
@@ -68,14 +70,12 @@ class HandSignature extends StatelessWidget {
     return ClipRRect(
       child: RawGestureDetector(
         gestures: <Type, GestureRecognizerFactory>{
-          _SingleGestureRecognizer:
-              GestureRecognizerFactoryWithHandlers<_SingleGestureRecognizer>(
-            () => _SingleGestureRecognizer(
-                debugOwner: this, supportedDevices: supportedDevices),
+          _SingleGestureRecognizer: GestureRecognizerFactoryWithHandlers<_SingleGestureRecognizer>(
+            () => _SingleGestureRecognizer(debugOwner: this, supportedDevices: supportedDevices),
             (instance) {
-              instance.onStart = (position) => _startPath(position);
-              instance.onUpdate = (position) => control.alterPath(position);
-              instance.onEnd = (position) => _endPath(position);
+              instance.onStart = (position, pressure) => _startPath(position, pressure);
+              instance.onUpdate = (position, pressure) => control.alterPath(position);
+              instance.onEnd = (position, pressure) => _endPath(position, pressure);
             },
           ),
         },
@@ -97,9 +97,9 @@ class _SingleGestureRecognizer extends OneSequenceGestureRecognizer {
   @override
   String get debugDescription => 'single_gesture_recognizer';
 
-  ValueChanged<Offset>? onStart;
-  ValueChanged<Offset>? onUpdate;
-  ValueChanged<Offset>? onEnd;
+  _GestureEvent? onStart;
+  _GestureEvent? onUpdate;
+  _GestureEvent? onEnd;
 
   bool pointerActive = false;
 
@@ -107,8 +107,7 @@ class _SingleGestureRecognizer extends OneSequenceGestureRecognizer {
     super.debugOwner,
     Set<PointerDeviceKind>? supportedDevices,
   }) : super(
-          supportedDevices:
-              supportedDevices ?? PointerDeviceKind.values.toSet(),
+          supportedDevices: supportedDevices ?? PointerDeviceKind.values.toSet(),
         );
 
   @override
@@ -123,16 +122,16 @@ class _SingleGestureRecognizer extends OneSequenceGestureRecognizer {
   @override
   void handleEvent(PointerEvent event) {
     if (event is PointerMoveEvent) {
-      onUpdate?.call(event.localPosition);
+      onUpdate?.call(event.localPosition, event.pressure);
     } else if (event is PointerDownEvent) {
       pointerActive = true;
-      onStart?.call(event.localPosition);
+      onStart?.call(event.localPosition, event.pressure);
     } else if (event is PointerUpEvent) {
       pointerActive = false;
-      onEnd?.call(event.localPosition);
+      onEnd?.call(event.localPosition, event.pressure);
     } else if (event is PointerCancelEvent) {
       pointerActive = false;
-      onEnd?.call(event.localPosition);
+      onEnd?.call(event.localPosition, event.pressure);
     }
   }
 
