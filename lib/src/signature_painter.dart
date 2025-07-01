@@ -11,6 +11,13 @@ enum SignatureDrawType {
   line,
   arc,
   shape,
+  custom,
+}
+
+class SignatureDrawer {
+  const SignatureDrawer();
+
+  void paint(Canvas canvas, Size size, List<CubicPath> paths) {}
 }
 
 /// [CustomPainter] of [CubicPath].
@@ -27,6 +34,8 @@ class PathSignaturePainter extends CustomPainter {
 
   /// Maximal size of path.
   final double maxWidth;
+
+  final SignatureDrawer drawer;
 
   //TODO: remove this and move size changes to Widget side..
   /// Callback when canvas size is changed.
@@ -56,6 +65,7 @@ class PathSignaturePainter extends CustomPainter {
     this.maxWidth = 10.0,
     this.onSize,
     this.type = SignatureDrawType.shape,
+    this.drawer = const SignatureDrawer(),
   });
 
   @override
@@ -97,23 +107,20 @@ class PathSignaturePainter extends CustomPainter {
         paths.forEach((path) {
           if (path.isFilled) {
             if (path.isDot) {
-              canvas.drawCircle(path.lines[0],
-                  path.lines[0].startRadius(width, maxWidth), paint);
+              canvas.drawCircle(path.lines[0], path.lines[0].startRadius(width, maxWidth), paint);
             } else {
-              canvas.drawPath(
-                  PathUtil.toShapePath(path.lines, width, maxWidth), paint);
+              canvas.drawPath(PathUtil.toShapePath(path.lines, width, maxWidth), paint);
 
               final first = path.lines.first;
               final last = path.lines.last;
 
-              canvas.drawCircle(
-                  first.start, first.startRadius(width, maxWidth), paint);
-              canvas.drawCircle(
-                  last.end, last.endRadius(width, maxWidth), paint);
+              canvas.drawCircle(first.start, first.startRadius(width, maxWidth), paint);
+              canvas.drawCircle(last.end, last.endRadius(width, maxWidth), paint);
             }
           }
         });
-
+        break;
+      case SignatureDrawType.custom:
         break;
     }
   }
