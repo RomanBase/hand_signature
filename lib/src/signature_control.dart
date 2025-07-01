@@ -535,7 +535,9 @@ class CubicPath {
   double _lineSize(double velocity, double max, double? pressure) {
     velocity /= max;
 
-    velocity = velocity * 0.5 + (1.0 - (pressure ?? 1.0)) * 0.5;
+    if (pressure != null) {
+      return (((1.0 - velocity) + pressure) * 0.5).clamp(0.0, 1.0);
+    }
 
     return 1.0 - velocity.clamp(0.0, 1.0);
   }
