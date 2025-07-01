@@ -54,13 +54,13 @@ class HandSignature extends StatelessWidget {
   void _startPath(Offset point, double pressure) {
     if (!control.hasActivePath) {
       onPointerDown?.call();
-      control.startPath(point);
+      control.startPath(point, pressure: pressure);
     }
   }
 
   void _endPath(Offset point, double pressure) {
     if (control.hasActivePath) {
-      control.closePath();
+      control.closePath(pressure: pressure);
       onPointerUp?.call();
     }
   }
@@ -74,7 +74,7 @@ class HandSignature extends StatelessWidget {
             () => _SingleGestureRecognizer(debugOwner: this, supportedDevices: supportedDevices),
             (instance) {
               instance.onStart = (position, pressure) => _startPath(position, pressure);
-              instance.onUpdate = (position, pressure) => control.alterPath(position);
+              instance.onUpdate = (position, pressure) => control.alterPath(position, pressure: pressure);
               instance.onEnd = (position, pressure) => _endPath(position, pressure);
             },
           ),

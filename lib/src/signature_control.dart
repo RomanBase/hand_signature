@@ -89,10 +89,11 @@ class OffsetPoint extends Offset {
     this.pressure,
   }) : super(dx, dy);
 
-  factory OffsetPoint.from(Offset offset) => OffsetPoint(
+  factory OffsetPoint.from(Offset offset, {double? pressure}) => OffsetPoint(
         dx: offset.dx,
         dy: offset.dy,
         timestamp: DateTime.now().millisecondsSinceEpoch,
+        pressure: pressure,
       );
 
   factory OffsetPoint.fromMap(Map<String, dynamic> data) => OffsetPoint(
@@ -497,7 +498,7 @@ class CubicPath {
       }
 
       if (_currentSize == 0.0) {
-        _currentSize = _lineSize(_currentVelocity, _maxVelocity);
+        _currentSize = _lineSize(_currentVelocity, _maxVelocity, line.start.pressure);
       }
     } else {
       line._upStartVector = _lines.last.upEndVector;
@@ -506,7 +507,7 @@ class CubicPath {
     _lines.add(line);
 
     final combinedVelocity = line.combineVelocity(_currentVelocity, maxFallOff: 0.125);
-    final double endSize = _lineSize(combinedVelocity, _maxVelocity);
+    final double endSize = _lineSize(combinedVelocity, _maxVelocity, line.end.pressure);
 
     if (combinedVelocity > _maxVelocity) {
       _maxVelocity = combinedVelocity;
@@ -523,7 +524,7 @@ class CubicPath {
 
   /// Adds dot to path.
   void _addDot(CubicLine line) {
-    final size = 0.25 + _lineSize(_currentVelocity, _maxVelocity) * 0.5;
+    final size = 0.25 + _lineSize(_currentVelocity, _maxVelocity, line.start.pressure) * 0.5;
     line.startSize = size;
 
     _lines.add(line);
@@ -531,24 +532,26 @@ class CubicPath {
   }
 
   /// Calculates line size based on [velocity].
-  double _lineSize(double velocity, double max) {
+  double _lineSize(double velocity, double max, double? pressure) {
     velocity /= max;
+
+    velocity = velocity * 0.5 + (1.0 - (pressure ?? 1.0)) * 0.5;
 
     return 1.0 - velocity.clamp(0.0, 1.0);
   }
 
   /// Starts path at given [point].
   /// Must be called as first, before [begin], [end].
-  void begin(Offset point, {double velocity = 0.0}) {
-    _points.add(point is OffsetPoint ? point : OffsetPoint.from(point));
+  void begin(Offset point, {double velocity = 0.0, double? pressure}) {
+    _points.add(point is OffsetPoint ? point : OffsetPoint.from(point, pressure: pressure));
     _currentVelocity = velocity;
   }
 
   /// Alters path with given [point].
-  void add(Offset point) {
+  void add(Offset point, {double? pressure}) {
     assert(_origin != null);
 
-    final nextPoint = point is OffsetPoint ? point : OffsetPoint.from(point);
+    final nextPoint = point is OffsetPoint ? point : OffsetPoint.from(point, pressure: pressure);
 
     if (_lastPoint == null || _lastPoint!.distanceTo(nextPoint) < setup.threshold) {
       return;
@@ -594,9 +597,9 @@ class CubicPath {
   }
 
   /// Ends path at given [point].
-  bool end({Offset? point}) {
+  bool end({Offset? point, double? pressure}) {
     if (point != null) {
-      add(point);
+      add(point, pressure: pressure);
     }
 
     if (_points.isEmpty) {
@@ -737,30 +740,40 @@ class HandSignatureControl extends ChangeNotifier {
   factory HandSignatureControl.fromMap(Map<String, dynamic> data) => HandSignatureControl()..import(data);
 
   /// Starts new line at given [point].
-  void startPath(Offset point) {
+  void startPath(Offset point, {double? pressure}) {
     assert(!hasActivePath);
 
     _activePath = CubicPath(setup: setup.call());
 
-    _activePath!.begin(point, velocity: _paths.isNotEmpty ? _paths.last._currentVelocity : 0.0);
+    _activePath!.begin(
+      point,
+      velocity: _paths.isNotEmpty ? _paths.last._currentVelocity : 0.0,
+      pressure: pressure,
+    );
 
     _paths.add(_activePath!);
   }
 
   /// Adds [point[ to active path.
-  void alterPath(Offset point) {
+  void alterPath(Offset point, {double? pressure}) {
     assert(hasActivePath);
 
-    _activePath?.add(point);
+    _activePath?.add(
+      point,
+      pressure: pressure,
+    );
 
     notifyListeners();
   }
 
   /// Closes active path at given [point].
-  void closePath([Offset? point]) {
+  void closePath({Offset? point, double? pressure}) {
     assert(hasActivePath);
 
-    final valid = _activePath?.end(point: point);
+    final valid = _activePath?.end(
+      point: point,
+      pressure: pressure,
+    );
 
     if (valid == false) {
       _paths.removeLast();
