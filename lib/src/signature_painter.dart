@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../signature.dart';
-import 'utils.dart';
 
 /// Type of signature path.
 /// [line] - simple line with constant size.
@@ -11,13 +10,6 @@ enum SignatureDrawType {
   line,
   arc,
   shape,
-  custom,
-}
-
-class SignatureDrawer {
-  const SignatureDrawer();
-
-  void paint(Canvas canvas, Size size, List<CubicPath> paths) {}
 }
 
 /// [CustomPainter] of [CubicPath].
@@ -26,46 +18,17 @@ class PathSignaturePainter extends CustomPainter {
   /// Paths to paint.
   final List<CubicPath> paths;
 
-  /// Single color of paint.
-  final Color color;
-
-  /// Minimal size of path.
-  final double width;
-
-  /// Maximal size of path.
-  final double maxWidth;
-
-  final SignatureDrawer drawer;
+  final HandSignatureDrawer drawer;
 
   //TODO: remove this and move size changes to Widget side..
   /// Callback when canvas size is changed.
   final bool Function(Size size)? onSize;
 
-  /// Type of signature path.
-  final SignatureDrawType type;
-
-  /// Returns [PaintingStyle.stroke] based paint.
-  Paint get strokePaint => Paint()
-    ..color = color
-    ..style = PaintingStyle.stroke
-    ..strokeCap = StrokeCap.round
-    ..strokeJoin = StrokeJoin.round
-    ..strokeWidth = width;
-
-  /// Returns [PaintingStyle.fill] based paint.
-  Paint get fillPaint => Paint()
-    ..color = color
-    ..strokeWidth = 0.0;
-
   /// [Path] painter.
   const PathSignaturePainter({
     required this.paths,
-    this.color = Colors.black,
-    this.width = 1.0,
-    this.maxWidth = 10.0,
+    required this.drawer,
     this.onSize,
-    this.type = SignatureDrawType.shape,
-    this.drawer = const SignatureDrawer(),
   });
 
   @override
@@ -81,48 +44,7 @@ class PathSignaturePainter extends CustomPainter {
       return;
     }
 
-    switch (type) {
-      case SignatureDrawType.line:
-        final paint = strokePaint;
-
-        paths.forEach((path) {
-          if (path.isFilled) {
-            canvas.drawPath(PathUtil.toLinePath(path.lines), paint);
-          }
-        });
-        break;
-      case SignatureDrawType.arc:
-        final paint = strokePaint;
-
-        paths.forEach((path) {
-          path.arcs.forEach((arc) {
-            paint.strokeWidth = width + (maxWidth - width) * arc.size;
-            canvas.drawPath(arc.path, paint);
-          });
-        });
-        break;
-      case SignatureDrawType.shape:
-        final paint = fillPaint;
-
-        paths.forEach((path) {
-          if (path.isFilled) {
-            if (path.isDot) {
-              canvas.drawCircle(path.lines[0], path.lines[0].startRadius(width, maxWidth), paint);
-            } else {
-              canvas.drawPath(PathUtil.toShapePath(path.lines, width, maxWidth), paint);
-
-              final first = path.lines.first;
-              final last = path.lines.last;
-
-              canvas.drawCircle(first.start, first.startRadius(width, maxWidth), paint);
-              canvas.drawCircle(last.end, last.endRadius(width, maxWidth), paint);
-            }
-          }
-        });
-        break;
-      case SignatureDrawType.custom:
-        break;
-    }
+    drawer.paint(canvas, size, paths);
   }
 
   @override

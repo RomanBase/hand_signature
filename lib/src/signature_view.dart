@@ -10,17 +10,23 @@ class HandSignature extends StatelessWidget {
   /// Controls path creation.
   final HandSignatureControl control;
 
-  /// Colors of path.
+  /// Type of signature path.
+  @Deprecated('Use {drawer}')
+  final SignatureDrawType type;
+
+  /// Single color of paint.
+  @Deprecated('Use {drawer}')
   final Color color;
 
   /// Minimal size of path.
+  @Deprecated('Use {drawer}')
   final double width;
 
   /// Maximal size of path.
+  @Deprecated('Use {drawer}')
   final double maxWidth;
 
-  /// Path type.
-  final SignatureDrawType type;
+  final HandSignatureDrawer? drawer;
 
   /// The set of pointer device types to recognize, e.g., touch, stylus.
   /// Example:
@@ -42,10 +48,11 @@ class HandSignature extends StatelessWidget {
   const HandSignature({
     Key? key,
     required this.control,
-    this.color = Colors.black,
-    this.width = 1.0,
-    this.maxWidth = 10.0,
-    this.type = SignatureDrawType.shape,
+    @Deprecated('Use {drawer}') this.type = SignatureDrawType.shape,
+    @Deprecated('Use {drawer}') this.color = Colors.black,
+    @Deprecated('Use {drawer}') this.width = 1.0,
+    @Deprecated('Use {drawer}') this.maxWidth = 10.0,
+    this.drawer,
     this.onPointerDown,
     this.onPointerUp,
     this.supportedDevices,
@@ -67,6 +74,12 @@ class HandSignature extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    control.params = SignaturePaintParams(
+      color: color,
+      strokeWidth: width,
+      maxStrokeWidth: maxWidth,
+    );
+
     return ClipRRect(
       child: RawGestureDetector(
         gestures: <Type, GestureRecognizerFactory>{
@@ -81,10 +94,12 @@ class HandSignature extends StatelessWidget {
         },
         child: HandSignaturePaint(
           control: control,
-          color: color,
-          strokeWidth: width,
-          maxStrokeWidth: maxWidth,
-          type: type,
+          drawer: drawer ??
+              switch (type) {
+                SignatureDrawType.line => LineSignatureDrawer(color: color, width: width),
+                SignatureDrawType.arc => ArcSignatureDrawer(color: color, width: width, maxWidth: maxWidth),
+                SignatureDrawType.shape => ShapeSignatureDrawer(color: color, width: width, maxWidth: maxWidth),
+              },
           onSize: control.notifyDimension,
         ),
       ),

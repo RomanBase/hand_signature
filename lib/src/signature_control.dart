@@ -46,23 +46,34 @@ class CubicPathSetup {
   /// Best results are between: 0.5 - 0.85.
   final double smoothRatio;
 
+  /// Clamps velocity.
   final double velocityRange;
 
+  /// Ratio between pressure and velocity.
+  /// 1.0 - only pressure, velocity is ignored
+  /// 0.0 - only velocity, pressure is ignored
+  /// 0.5 - balanced pressure and velocity
+  final double pressureRatio;
+
+  /// Additional arguments to setup path - typically used with {HandSignatureDrawer}
   final Map<String, dynamic>? args;
 
   const CubicPathSetup({
     this.threshold = 3.0,
     this.smoothRatio = 0.65,
     this.velocityRange = 2.0,
+    this.pressureRatio = 0.0,
     this.args,
   })  : assert(threshold > 0.0),
         assert(smoothRatio > 0.0 && smoothRatio <= 1.0),
-        assert(velocityRange > 0.0);
+        assert(velocityRange > 0.0),
+        assert(pressureRatio >= 0.0 && pressureRatio <= 1.0);
 
   factory CubicPathSetup.fromMap(Map<String, dynamic> data) => CubicPathSetup(
         threshold: data['threshold'],
         smoothRatio: data['smoothRatio'],
         velocityRange: data['velocityRange'],
+        pressureRatio: data['pressureRatio'],
         args: data['args'],
       );
 
@@ -70,6 +81,7 @@ class CubicPathSetup {
         'threshold': threshold,
         'smoothRatio': smoothRatio,
         'velocityRange': velocityRange,
+        'pressureRatio': pressureRatio,
         if (args != null) 'args': args,
       };
 }
@@ -482,8 +494,7 @@ class CubicPath {
   double _currentSize = 0.0;
 
   /// Line builder.
-  /// [threshold] - Distance between two control points.
-  /// [smoothRatio] - Ratio of line smoothing.
+  /// [setup] - Path Variables Setup
   CubicPath({
     this.setup = const CubicPathSetup(),
   }) {
@@ -536,7 +547,10 @@ class CubicPath {
     velocity /= max;
 
     if (pressure != null) {
-      return (((1.0 - velocity) + pressure) * 0.5).clamp(0.0, 1.0);
+      final v = (1.0 - velocity) * (1.0 - setup.pressureRatio);
+      final p = pressure * setup.pressureRatio;
+
+      return (v + p).clamp(0.0, 1.0);
     }
 
     return 1.0 - velocity.clamp(0.0, 1.0);
@@ -726,6 +740,7 @@ class HandSignatureControl extends ChangeNotifier {
     @Deprecated('Use {setup} or {initialSetup}') double threshold = 3.0,
     @Deprecated('Use {setup} or {initialSetup}') double smoothRatio = 0.65,
     @Deprecated('Use {setup} or {initialSetup}') double velocityRange = 2.0,
+    @Deprecated('Use {setup} or {initialSetup}') double pressureRatio = 0.0,
     CubicPathSetup Function()? setup,
     CubicPathSetup? initialSetup,
   }) {
@@ -736,6 +751,7 @@ class HandSignatureControl extends ChangeNotifier {
               threshold: threshold,
               smoothRatio: smoothRatio,
               velocityRange: velocityRange,
+              pressureRatio: pressureRatio,
             );
   }
 
@@ -1097,6 +1113,8 @@ class HandSignatureControl extends ChangeNotifier {
     Color? background,
     double? strokeWidth,
     double? maxStrokeWidth,
+    SignatureDrawType type = SignatureDrawType.arc,
+    HandSignatureDrawer? drawer,
     double border = 0.0,
     bool fit = true,
   }) {
@@ -1140,10 +1158,12 @@ class HandSignatureControl extends ChangeNotifier {
     final recorder = PictureRecorder();
     final painter = PathSignaturePainter(
       paths: [path],
-      color: color,
-      width: strokeWidth,
-      maxWidth: maxStrokeWidth,
-      type: SignatureDrawType.arc,
+      drawer: drawer ??
+          switch (type) {
+            SignatureDrawType.line => LineSignatureDrawer(color: color, width: strokeWidth),
+            SignatureDrawType.arc => ArcSignatureDrawer(color: color, width: strokeWidth, maxWidth: maxStrokeWidth),
+            SignatureDrawType.shape => ShapeSignatureDrawer(color: color, width: strokeWidth, maxWidth: maxStrokeWidth),
+          },
     );
 
     final canvas = Canvas(
@@ -1173,7 +1193,9 @@ class HandSignatureControl extends ChangeNotifier {
     Color? background,
     double? strokeWidth,
     double? maxStrokeWidth,
-    double border = 32.0,
+    SignatureDrawType type = SignatureDrawType.arc,
+    HandSignatureDrawer? drawer,
+    double border = 0.0,
     ImageByteFormat format = ImageByteFormat.png,
     bool fit = false,
   }) async {
@@ -1184,6 +1206,8 @@ class HandSignatureControl extends ChangeNotifier {
       background: background,
       strokeWidth: strokeWidth,
       maxStrokeWidth: maxStrokeWidth,
+      type: type,
+      drawer: drawer,
       border: border,
       fit: fit,
     )?.toImage(width, height);
