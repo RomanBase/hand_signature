@@ -1,0 +1,28 @@
+name: Signature Control Test
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      # Setup Flutter SDK
+      # For more options, see https://github.com/subosito/flutter-action
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          # flutter-version: '3.x.x' # Optionally specify a Flutter version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Run flutter tests
+      - name: Run tests
+        run: flutter test
