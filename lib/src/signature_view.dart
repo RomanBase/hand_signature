@@ -83,12 +83,17 @@ class HandSignature extends StatelessWidget {
     return ClipRRect(
       child: RawGestureDetector(
         gestures: <Type, GestureRecognizerFactory>{
-          _SingleGestureRecognizer: GestureRecognizerFactoryWithHandlers<_SingleGestureRecognizer>(
-            () => _SingleGestureRecognizer(debugOwner: this, supportedDevices: supportedDevices),
+          _SingleGestureRecognizer:
+              GestureRecognizerFactoryWithHandlers<_SingleGestureRecognizer>(
+            () => _SingleGestureRecognizer(
+                debugOwner: this, supportedDevices: supportedDevices),
             (instance) {
-              instance.onStart = (position, pressure) => _startPath(position, pressure);
-              instance.onUpdate = (position, pressure) => control.alterPath(position, pressure: pressure);
-              instance.onEnd = (position, pressure) => _endPath(position, pressure);
+              instance.onStart =
+                  (position, pressure) => _startPath(position, pressure);
+              instance.onUpdate = (position, pressure) =>
+                  control.alterPath(position, pressure: pressure);
+              instance.onEnd =
+                  (position, pressure) => _endPath(position, pressure);
             },
           ),
         },
@@ -96,9 +101,12 @@ class HandSignature extends StatelessWidget {
           control: control,
           drawer: drawer ??
               switch (type) {
-                SignatureDrawType.line => LineSignatureDrawer(color: color, width: width),
-                SignatureDrawType.arc => ArcSignatureDrawer(color: color, width: width, maxWidth: maxWidth),
-                SignatureDrawType.shape => ShapeSignatureDrawer(color: color, width: width, maxWidth: maxWidth),
+                SignatureDrawType.line =>
+                  LineSignatureDrawer(color: color, width: width),
+                SignatureDrawType.arc => ArcSignatureDrawer(
+                    color: color, width: width, maxWidth: maxWidth),
+                SignatureDrawType.shape => ShapeSignatureDrawer(
+                    color: color, width: width, maxWidth: maxWidth),
               },
           onSize: control.notifyDimension,
         ),
@@ -122,7 +130,8 @@ class _SingleGestureRecognizer extends OneSequenceGestureRecognizer {
     super.debugOwner,
     Set<PointerDeviceKind>? supportedDevices,
   }) : super(
-          supportedDevices: supportedDevices ?? PointerDeviceKind.values.toSet(),
+          supportedDevices:
+              supportedDevices ?? PointerDeviceKind.values.toSet(),
         );
 
   @override

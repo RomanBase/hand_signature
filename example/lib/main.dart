@@ -123,7 +123,8 @@ class SignatureExample extends StatelessWidget {
                               savedState.value = null;
                             }
                           },
-                          child: Text(value == null ? 'save state' : 'load state'),
+                          child:
+                              Text(value == null ? 'save state' : 'load state'),
                         );
                       }),
                 ),

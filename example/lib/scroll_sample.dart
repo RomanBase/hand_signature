@@ -18,7 +18,9 @@ class _ScrollSampleState extends State<ScrollSample> {
     return Container(
       color: Colors.orange,
       child: ListView(
-        physics: scrollEnabled ? BouncingScrollPhysics() : NeverScrollableScrollPhysics(),
+        physics: scrollEnabled
+            ? BouncingScrollPhysics()
+            : NeverScrollableScrollPhysics(),
         children: <Widget>[
           Container(
             height: MediaQuery.of(context).size.height * 0.35,
