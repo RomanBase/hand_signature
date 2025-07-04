@@ -54,7 +54,14 @@ class CustomSampleState extends State {
                   color: Colors.white,
                   child: HandSignature(
                     control: control,
-                    drawer: CustomSignatureDrawer(),
+                    drawer: MultiSignatureDrawer(drawers: [
+                      ShapeSignatureDrawer(
+                        width: 6.0,
+                        maxWidth: 16.0,
+                        color: Colors.grey,
+                      ),
+                      CustomSignatureDrawer(),
+                    ]),
                   ),
                 ),
               ),
@@ -135,7 +142,11 @@ class CustomSignatureDrawer extends HandSignatureDrawer {
     for (final path in paths) {
       final color = Color(path.setup.args?['color'] ?? 0xFF000000);
 
-      ShapeSignatureDrawer(color: color).paint(canvas, size, [path]);
+      ShapeSignatureDrawer(
+        width: 2.0,
+        maxWidth: 12.0,
+        color: color,
+      ).paint(canvas, size, [path]);
     }
   }
 }

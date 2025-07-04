@@ -37,8 +37,9 @@ class SignaturePaintParams {
   });
 }
 
+/// Defines the setup parameters for a signature path, including smoothing, velocity, and pressure ratios.
 class SignaturePathSetup {
-  /// Distance between two control points.
+  /// Minimal distance between two control points.
   final double threshold;
 
   /// Ratio of line smoothing.
@@ -90,14 +91,15 @@ class SignaturePathSetup {
       };
 }
 
-/// Extended [Offset] point with [timestamp].
+/// Extended [Offset] point with [timestamp] and optional [pressure].
 class OffsetPoint extends Offset {
   /// Timestamp of this point. Used to determine velocity to other points.
   final int timestamp;
+
+  /// The pressure value at this point, if available.
   final double? pressure;
 
-  /// 2D point in canvas space.
-  /// [timestamp] of this [Offset]. Used to determine velocity to other points.
+  /// Creates an [OffsetPoint] with the given coordinates, timestamp, and optional pressure.
   const OffsetPoint({
     required double dx,
     required double dy,
@@ -105,6 +107,7 @@ class OffsetPoint extends Offset {
     this.pressure,
   }) : super(dx, dy);
 
+  /// Creates an [OffsetPoint] from a standard [Offset] with the current timestamp and optional pressure.
   factory OffsetPoint.from(Offset offset, {double? pressure}) => OffsetPoint(
         dx: offset.dx,
         dy: offset.dy,
@@ -112,6 +115,7 @@ class OffsetPoint extends Offset {
         pressure: pressure,
       );
 
+  /// Creates an [OffsetPoint] from a map of data, typically used for deserialization.
   factory OffsetPoint.fromMap(Map<String, dynamic> data) => OffsetPoint(
         dx: data['x'],
         dy: data['y'],
@@ -119,6 +123,7 @@ class OffsetPoint extends Offset {
         pressure: data['p'],
       );
 
+  /// Converts this [OffsetPoint] to a map of data, typically used for serialization.
   Map<String, dynamic> toMap() => {
         'x': dx,
         'y': dy,
@@ -126,9 +131,10 @@ class OffsetPoint extends Offset {
         if (pressure != null) 'p': pressure,
       };
 
-  /// Returns velocity between this and [other] - previous point.
+  /// Calculates the velocity between this point and a [other] (previous) point.
+  /// Returns 0.0 if timestamps are the same to avoid division by zero.
   double velocityFrom(OffsetPoint other) => timestamp != other.timestamp
-      ? this.distanceTo(other) / (timestamp - other.timestamp)
+      ? distanceTo(other) / (timestamp - other.timestamp)
       : 0.0;
 
   @override
@@ -152,76 +158,84 @@ class OffsetPoint extends Offset {
   }
 
   @override
-  bool operator ==(other) {
+  bool operator ==(Object other) {
     return other is OffsetPoint &&
         other.dx == dx &&
         other.dy == dy &&
-        other.timestamp == timestamp;
+        other.timestamp == timestamp &&
+        other.pressure == pressure;
   }
 
   @override
-  int get hashCode => Object.hash(super.hashCode, timestamp);
+  int get hashCode => Object.hash(super.hashCode, timestamp, pressure);
 }
 
-/// Line between two points. Curve of this line is controlled with other two points.
-/// Check https://cubic-bezier.com/ for more info about Bezier Curve.
+/// Represents a cubic Bezier curve segment, defined by a start point, end point, and two control points.
+/// This class extends [Offset] to represent the starting point of the curve.
+///
+/// For more information on Bezier curves, refer to: https://cubic-bezier.com/
 class CubicLine extends Offset {
-  /// Initial point of curve.
+  /// The starting point of the cubic Bezier curve.
   final OffsetPoint start;
 
-  /// Control of [start] point.
+  /// The first control point, influencing the curve's shape from the [start] point.
   final Offset cpStart;
 
-  /// Control of [end] point
+  /// The second control point, influencing the curve's shape from the [end] point.
   final Offset cpEnd;
 
-  /// End point of curve.
+  /// The ending point of the cubic Bezier curve.
   final OffsetPoint end;
 
+  /// The calculated velocity of the line segment.
   late double _velocity;
+
+  /// The calculated distance between the start and end points.
   late double _distance;
 
-  /// Cache of Up vector.
+  /// Cached 'Up' vector for the [start] point, used for shape calculations.
   Offset? _upStartVector;
 
-  /// Up vector of [start] point.
+  /// The 'Up' vector for the [start] point, calculated if not already cached.
+  /// This vector is perpendicular to the curve's direction at the start.
   Offset get upStartVector =>
       _upStartVector ??
       (_upStartVector = start.directionTo(point(0.001)).rotate(-math.pi * 0.5));
 
-  /// Cache of Up vector.
+  /// Cached 'Up' vector for the [end] point, used for shape calculations.
   Offset? _upEndVector;
 
-  /// Up vector of [end] point.
+  /// The 'Up' vector for the [end] point, calculated if not already cached.
+  /// This vector is perpendicular to the curve's direction at the end.
   Offset get upEndVector =>
       _upEndVector ??
       (_upEndVector = end.directionTo(point(0.999)).rotate(math.pi * 0.5));
 
-  /// Down vector.
+  /// The 'Down' vector for the [start] point, which is the [upStartVector] rotated by 180 degrees.
   Offset get _downStartVector => upStartVector.rotate(math.pi);
 
-  /// Down vector.
+  /// The 'Down' vector for the [end] point, which is the [upEndVector] rotated by 180 degrees.
   Offset get _downEndVector => upEndVector.rotate(math.pi);
 
-  /// Start ratio size of line.
+  /// The size ratio of the line at its starting point (typically 0.0 to 1.0).
   double startSize;
 
-  /// End ratio size of line.
+  /// The size ratio of the line at its ending point (typically 0.0 to 1.0).
   double endSize;
 
-  /// Checks if point is dot.
-  /// Returns 'true' if [start] and [end] is same -> [velocity] is zero.
+  /// Indicates if this line segment represents a 'dot' (i.e., start and end points are the same, and velocity is zero).
   bool get isDot => _velocity == 0.0;
 
-  /// Based on Bezier Cubic curve.
-  /// [start] point of curve.
-  /// [end] point of curve.
-  /// [cpStart] - control point of [start] vector.
-  /// [cpEnd] - control point of [end] vector.
-  /// [startSize] - size ratio at begin of curve.
-  /// [endSize] - size ratio at end of curve.
-  /// [upStartVector] - pre-calculated Up vector fo start point.
-  /// [upEndVector] - pre-calculated Up vector of end point.
+  /// Creates a [CubicLine] segment.
+  ///
+  /// [start] The initial point of the curve.
+  /// [end] The end point of the curve.
+  /// [cpStart] The control point associated with the [start] vector.
+  /// [cpEnd] The control point associated with the [end] vector.
+  /// [upStartVector] An optional pre-calculated 'Up' vector for the start point.
+  /// [upEndVector] An optional pre-calculated 'Up' vector for the end point.
+  /// [startSize] The initial size ratio of the line at the beginning of the curve.
+  /// [endSize] The final size ratio of the line at the end of the curve.
   CubicLine({
     required this.start,
     required this.cpStart,
@@ -262,10 +276,10 @@ class CubicLine extends Offset {
         endSize: endSize,
       );
 
-  /// Calculates length of Cubic curve with given [accuracy].
-  /// 0 - fastest, raw accuracy.
-  /// 1 - slowest, most accurate.
-  /// Returns length of curve.
+  /// Calculates the approximate length of the cubic curve with a given [accuracy].
+  ///
+  /// [accuracy] A value between 0 (fastest, raw accuracy) and 1 (slowest, most accurate).
+  /// Returns the calculated length of the curve.
   double length({double accuracy = 0.1}) {
     final steps = (accuracy * 100).toInt();
 
@@ -288,9 +302,10 @@ class CubicLine extends Offset {
     return length;
   }
 
-  /// Calculates point on curve at given [t].
-  /// [t] - 0 to 1.
-  /// Returns location on Curve at [t].
+  /// Calculates a point on the cubic curve at a given parameter [t].
+  ///
+  /// [t] A value between 0 (start of the curve) and 1 (end of the curve).
+  /// Returns the [Offset] representing the location on the curve at [t].
   Offset point(double t) {
     final rt = 1.0 - t;
     return (start * rt * rt * rt) +
@@ -299,12 +314,20 @@ class CubicLine extends Offset {
         (end * t * t * t);
   }
 
-  /// Velocity along this line.
+  /// Calculates the velocity along this line segment.
+  ///
+  /// [accuracy] The accuracy for calculating the length of the curve.
+  /// Returns the velocity, or 0.0 if start and end timestamps are the same.
   double velocity({double accuracy = 0.0}) => start.timestamp != end.timestamp
       ? length(accuracy: accuracy) / (end.timestamp - start.timestamp)
       : 0.0;
 
-  /// Combines line velocity with [inVelocity] based on [velocityRatio].
+  /// Combines the line's intrinsic velocity with an [inVelocity] based on a [velocityRatio].
+  ///
+  /// [inVelocity] The incoming velocity to combine with.
+  /// [velocityRatio] The ratio to weigh the line's intrinsic velocity (0.0 to 1.0).
+  /// [maxFallOff] The maximum allowed difference between the combined velocity and [inVelocity].
+  /// Returns the combined velocity.
   double combineVelocity(double inVelocity,
       {double velocityRatio = 0.65, double maxFallOff = 1.0}) {
     final value =
@@ -324,12 +347,18 @@ class CubicLine extends Offset {
     return value;
   }
 
-  /// Converts this line to Cubic [Path].
+  /// Converts this cubic line segment into a Flutter [Path] object.
   Path toPath() => Path()
     ..moveTo(dx, dy)
     ..cubicTo(cpStart.dx, cpStart.dy, cpEnd.dx, cpEnd.dy, end.dx, end.dy);
 
-  /// Converts this line to [CubicArc].
+  /// Converts this cubic line into a list of [CubicArc] segments.
+  /// This is used to approximate the curve with a series of arcs for drawing.
+  ///
+  /// [size] The base size for the arcs.
+  /// [deltaSize] The change in size across the arc.
+  /// [precision] The precision for generating arc segments (higher value means more segments).
+  /// Returns a list of [CubicArc] objects.
   List<CubicArc> toArc(double size, double deltaSize,
       {double precision = 0.5}) {
     final list = <CubicArc>[];
@@ -337,7 +366,7 @@ class CubicLine extends Offset {
     final steps = (_distance * precision).floor().clamp(1, 30);
 
     Offset start = this.start;
-    for (int i = 0; i < steps; i++) {
+    for (int i = 1; i < steps; i++) {
       final t = (i + 1) / steps;
       final loc = point(t);
       final width = size + deltaSize * t;
@@ -354,7 +383,11 @@ class CubicLine extends Offset {
     return list;
   }
 
-  /// Converts this line to closed [Path].
+  /// Converts this cubic line into a closed [Path] representing a filled shape.
+  /// This is typically used for drawing thick, filled lines.
+  ///
+  /// [size] The base stroke width.
+  /// [maxSize] The maximum stroke width.
   Path toShape(double size, double maxSize) {
     final startArm = (size + (maxSize - size) * startSize) * 0.5;
     final endArm = (size + (maxSize - size) * endSize) * 0.5;
@@ -375,36 +408,48 @@ class CubicLine extends Offset {
       ..close();
   }
 
-  /// Returns Up offset of start point.
+  /// Returns the 'Up' offset for the start point, scaled by the start radius.
   Offset cpsUp(double size, double maxSize) =>
       upStartVector * startRadius(size, maxSize);
 
-  /// Returns Up offset of end point.
+  /// Returns the 'Up' offset for the end point, scaled by the end radius.
   Offset cpeUp(double size, double maxSize) =>
       upEndVector * endRadius(size, maxSize);
 
-  /// Returns Down offset of start point.
+  /// Returns the 'Down' offset for the start point, scaled by the start radius.
   Offset cpsDown(double size, double maxSize) =>
       _downStartVector * startRadius(size, maxSize);
 
-  /// Returns Down offset of end point.
+  /// Returns the 'Down' offset for the end point, scaled by the end radius.
   Offset cpeDown(double size, double maxSize) =>
       _downEndVector * endRadius(size, maxSize);
 
-  /// Returns radius of start point.
+  /// Returns the calculated radius for the start point based on [size], [maxSize], and [startSize].
   double startRadius(double size, double maxSize) =>
       _lerpRadius(size, maxSize, startSize);
 
-  /// Returns radius of end point.
+  /// Returns the calculated radius for the end point based on [size], [maxSize], and [endSize].
   double endRadius(double size, double maxSize) =>
       _lerpRadius(size, maxSize, endSize);
 
-  /// Linear interpolation of size.
-  /// Returns radius of interpolated size.
+  /// Performs linear interpolation to calculate a radius based on a given size, max size, and interpolation factor.
+  ///
+  /// [size] The base size.
+  /// [maxSize] The maximum size.
+  /// [t] The interpolation factor (0.0 to 1.0).
+  /// Returns the interpolated radius.
   double _lerpRadius(double size, double maxSize, double t) =>
       (size + (maxSize - size) * t) * 0.5;
 
-  /// Calculates [current] point based on [previous] and [next] control points.
+  /// Calculates a 'soft' control point for a [current] point based on its [previous] and [next] neighbors.
+  /// This is used to create smooth curves.
+  ///
+  /// [current] The current [OffsetPoint] for which to calculate the control point.
+  /// [previous] The preceding [OffsetPoint] in the path.
+  /// [next] The succeeding [OffsetPoint] in the path.
+  /// [reverse] If true, calculates the control point in reverse direction.
+  /// [smoothing] A factor (0.0 to 1.0) controlling the smoothness of the curve.
+  /// Returns the calculated soft control point as an [Offset].
   static Offset softCP(OffsetPoint current,
       {OffsetPoint? previous,
       OffsetPoint? next,
@@ -459,26 +504,28 @@ class CubicLine extends Offset {
       endSize.hashCode;
 }
 
-/// Arc between two points.
+/// Represents an arc segment between two points, typically used for drawing.
+/// This class extends [Offset] to represent the starting point of the arc.
 class CubicArc extends Offset {
-  /// End location of arc.
+  /// The ending location of the arc.
   final Offset location;
 
-  /// Line size.
+  /// The size of the line segment represented by this arc (typically 0.0 to 1.0).
   final double size;
 
-  /// Arc path.
+  /// Generates a [Path] object representing this arc.
   Path get path => Path()
     ..moveTo(dx, dy)
     ..arcToPoint(location, rotation: pi2);
 
-  /// Rectangle of start and end point.
+  /// Returns a [Rect] that encloses both the start and end points of the arc.
   Rect get rect => Rect.fromPoints(this, location);
 
-  /// Arc line.
-  /// [start] point of arc.
-  /// [location] end point of arc.
-  /// [size] ratio of arc. typically 0 - 1.
+  /// Creates a [CubicArc] instance.
+  ///
+  /// [start] The starting point of the arc.
+  /// [location] The ending point of the arc.
+  /// [size] The size ratio of the arc, typically between 0 and 1.
   CubicArc({
     required Offset start,
     required this.location,
@@ -500,59 +547,60 @@ class CubicArc extends Offset {
       );
 }
 
-/// Combines sequence of points into one Line.
+/// Manages a sequence of points to form a smooth, drawable path using cubic Bezier curves.
 class CubicPath {
-  /// Raw data.
+  /// The raw list of [OffsetPoint]s that define the path.
   final _points = <OffsetPoint>[];
 
-  /// [CubicLine] representation of path.
+  /// The list of [CubicLine] segments derived from the raw points, forming the smoothed path.
   final _lines = <CubicLine>[];
 
-  /// [CubicArc] representation of path.
+  /// The list of [CubicArc] segments, used for drawing the path as a series of arcs.
   final _arcs = <CubicArc>[];
 
+  /// The setup parameters for this path, including smoothing, velocity, and pressure ratios.
   final SignaturePathSetup setup;
 
-  /// Returns raw data of path.
+  /// Returns an unmodifiable list of the raw [OffsetPoint]s that make up this path.
   List<OffsetPoint> get points => _points;
 
-  /// Returns [CubicLine] representation of path.
+  /// Returns an unmodifiable list of the [CubicLine] segments that form this path.
   List<CubicLine> get lines => _lines;
 
-  /// Returns [CubicArc] representation of path.
+  /// Returns an unmodifiable list of the [CubicArc] segments that approximate this path.
   List<CubicArc> get arcs => _arcs;
 
-  /// First point of path.
+  /// The first point in the path, or `null` if the path is empty.
   Offset? get _origin => _points.isNotEmpty ? _points[0] : null;
 
-  /// Last point of path.
+  /// The last point added to the path, or `null` if the path is empty.
   OffsetPoint? get _lastPoint =>
       _points.isNotEmpty ? _points[_points.length - 1] : null;
 
-  /// Checks if path is valid.
+  /// Indicates whether the path contains any drawn lines.
   bool get isFilled => _lines.isNotEmpty;
 
-  /// Checks if this Line is just dot.
+  /// Indicates whether the path consists of a single 'dot' (a line with zero velocity).
   bool get isDot => lines.length == 1 && lines[0].isDot;
 
-  /// Maximum possible velocity.
+  /// The maximum velocity observed within this path.
   double _maxVelocity = 1.0;
 
-  /// Actual average velocity.
+  /// The current average velocity of the path being drawn.
   double _currentVelocity = 0.0;
 
-  /// Actual size based on velocity.
+  /// The current size (thickness) of the line based on velocity and pressure.
   double _currentSize = 0.0;
 
-  /// Line builder.
-  /// [setup] - Path Variables Setup
+  /// Creates a [CubicPath] with the given [setup] parameters.
   CubicPath({
     this.setup = const SignaturePathSetup(),
   }) {
     _maxVelocity = setup.velocityRange;
   }
 
-  /// Adds line to path.
+  /// Adds a [CubicLine] segment to the path.
+  /// This method updates the current velocity and size based on the new line.
   void _addLine(CubicLine line) {
     if (_lines.isEmpty) {
       if (_currentVelocity == 0.0) {
@@ -587,7 +635,8 @@ class CubicPath {
     _currentVelocity = combinedVelocity;
   }
 
-  /// Adds dot to path.
+  /// Adds a 'dot' (a single point line) to the path.
+  /// This is used when the path consists of a single, stationary point.
   void _addDot(CubicLine line) {
     final size = 0.25 +
         _lineSize(_currentVelocity, _maxVelocity, line.start.pressure) * 0.5;
@@ -597,7 +646,7 @@ class CubicPath {
     _arcs.addAll(line.toArc(size, 0.0));
   }
 
-  /// Calculates line size based on [velocity].
+  /// Calculates the line size (thickness) based on the given [velocity], maximum velocity [max], and optional [pressure].
   double _lineSize(double velocity, double max, double? pressure) {
     velocity /= max;
 
@@ -611,8 +660,12 @@ class CubicPath {
     return 1.0 - velocity.clamp(0.0, 1.0);
   }
 
-  /// Starts path at given [point].
-  /// Must be called as first, before [begin], [end].
+  /// Starts a new path at the given [point].
+  /// This method must be called before [add] or [end].
+  ///
+  /// [point] The initial [Offset] for the path.
+  /// [velocity] The initial velocity of the path.
+  /// [pressure] The initial pressure at the starting point.
   void begin(Offset point, {double velocity = 0.0, double? pressure}) {
     _points.add(point is OffsetPoint
         ? point
@@ -620,7 +673,11 @@ class CubicPath {
     _currentVelocity = velocity;
   }
 
-  /// Alters path with given [point].
+  /// Adds a new [point] to the active path.
+  /// This method calculates new cubic line segments and updates the path.
+  ///
+  /// [point] The new [Offset] to add to the path.
+  /// [pressure] The pressure at the new point.
   void add(Offset point, {double? pressure}) {
     assert(_origin != null);
 
@@ -672,7 +729,12 @@ class CubicPath {
     _addLine(line);
   }
 
-  /// Ends path at given [point].
+  /// Ends the active path at the given [point].
+  /// This method finalizes the path segments and handles cases for very short paths (dots or single lines).
+  ///
+  /// [point] The final [Offset] for the path.
+  /// [pressure] The pressure at the final point.
+  /// Returns `true` if the path was successfully ended and is valid, `false` otherwise.
   bool end({Offset? point, double? pressure}) {
     if (point != null) {
       add(point, pressure: pressure);
@@ -714,7 +776,8 @@ class CubicPath {
     return true;
   }
 
-  /// Sets scale of whole line.
+  /// Scales the entire path by a given [ratio].
+  /// This method updates all points, arcs, and lines within the path.
   void setScale(double ratio) {
     if (!isFilled) {
       return;
@@ -736,14 +799,14 @@ class CubicPath {
       ..addAll(lineData);
   }
 
-  /// Clears all path data-.
+  /// Clears all data associated with this path, effectively resetting it.
   void clear() {
     _points.clear();
     _lines.clear();
     _arcs.clear();
   }
 
-  /// Currently checks only equality of [points].
+  /// Checks if this [CubicPath] is equal to [other] based on their raw points.
   bool equals(CubicPath other) {
     if (points.length == other.points.length) {
       for (int i = 0; i < points.length; i++) {
@@ -759,44 +822,46 @@ class CubicPath {
   }
 }
 
-/// Controls signature drawing and line shape.
-/// Also handles export of finished signature.
+/// A [ChangeNotifier] that controls the drawing and manipulation of a hand signature.
+/// It manages the active paths, their setup, and provides methods for
+/// starting, altering, closing, importing, and exporting signature data.
 class HandSignatureControl extends ChangeNotifier {
-  /// List of active paths.
+  /// A private list storing all completed [CubicPath]s that form the signature.
   final _paths = <CubicPath>[];
 
+  /// A function that provides the [SignaturePathSetup] for new paths.
   late SignaturePathSetup Function() setup;
 
-  /// Visual parameters of line painting.
+  /// Optional visual parameters for line painting, primarily for backwards compatibility.
   SignaturePaintParams? params;
 
-  /// Currently unfinished path.
+  /// The currently active (unfinished) [CubicPath] being drawn.
   CubicPath? _activePath;
 
-  /// Canvas size.
-  Size _areaSize = Size.zero; //TODO: should be in SignaturePaintParams
+  /// The size of the canvas area where the signature is drawn.
+  /// TODO: This property should ideally be part of [SignaturePaintParams] or a dedicated rendering context.
+  Size _areaSize = Size.zero;
 
-  /// List of currently completed lines.
+  /// Returns an unmodifiable list of all completed [CubicPath]s.
   List<CubicPath> get paths => _paths;
 
-  /// Lazy list of all control points - raw data.
-  List<List<Offset>> get _offsets =>
-      _paths.map((data) => data._points).toList();
+  /// Returns a lazy list of all raw [Offset] control points from all paths.
+  List<List<Offset>> get _offsets => _paths.map((data) => data.points).toList();
 
-  /// Lazy list of all Lines.
+  /// Returns a lazy list of all [CubicLine] segments from all paths.
   List<List<CubicLine>> get _cubicLines =>
-      _paths.map((data) => data._lines).toList();
+      _paths.map((data) => data.lines).toList();
 
-  /// Lazy list of all Arcs.
+  /// Returns a lazy, flattened list of all [CubicArc] segments from all paths.
   List<CubicArc> get _arcs => _paths.expand((data) => data.arcs).toList();
 
-  /// Returns list of all active CubicLine paths.
-  List<CubicLine> get lines => _paths.expand((data) => data._lines).toList();
+  /// Returns a flattened list of all [CubicLine] segments across all paths.
+  List<CubicLine> get lines => _paths.expand((data) => data.lines).toList();
 
-  /// Checks if is there unfinished path.
+  /// Indicates whether there is an active (unfinished) path being drawn.
   bool get hasActivePath => _activePath != null;
 
-  /// Checks if something is drawn.
+  /// Indicates whether any signature data has been drawn (i.e., if there are any completed paths).
   bool get isFilled => _paths.isNotEmpty;
 
   /// Controls input from [HandSignature] and creates smooth signature path.
