@@ -58,7 +58,7 @@ class CustomSampleState extends State {
                       ShapeSignatureDrawer(
                         width: 6.0,
                         maxWidth: 16.0,
-                        color: Colors.grey,
+                        color: Colors.black,
                       ),
                       CustomSignatureDrawer(),
                     ]),

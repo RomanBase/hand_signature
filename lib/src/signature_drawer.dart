@@ -18,7 +18,7 @@ abstract class HandSignatureDrawer {
   void paint(Canvas canvas, Size size, List<CubicPath> paths);
 }
 
-/// A concrete implementation of [HandSignatureDrawer] that draws signatures as simple lines.
+/// A concrete implementation of [HandSignatureDrawer] that draws signature as simple lines.
 class LineSignatureDrawer extends HandSignatureDrawer {
   /// The color used to paint the lines.
   final Color color;
@@ -86,8 +86,7 @@ class ArcSignatureDrawer extends HandSignatureDrawer {
   }
 }
 
-/// A concrete implementation of [HandSignatureDrawer] that draws signatures as filled shapes.
-/// This drawer handles both single "dot" paths and multi-segment paths.
+/// A concrete implementation of [HandSignatureDrawer] that draws signature as filled Path.
 class ShapeSignatureDrawer extends HandSignatureDrawer {
   /// The color used to fill the shapes.
   final Color color;
