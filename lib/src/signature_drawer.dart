@@ -124,7 +124,7 @@ class DynamicSignatureDrawer extends HandSignatureDrawer {
           drawer = ShapeSignatureDrawer(color: color, width: width, maxWidth: maxWidth);
       }
 
-      drawer.paint(canvas, size, paths);
+      drawer.paint(canvas, size, [path]);
     }
   }
 }

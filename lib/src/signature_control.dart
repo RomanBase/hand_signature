@@ -8,6 +8,7 @@ import '../signature.dart';
 import 'utils.dart';
 
 /// Paint settings.
+/// TODO: refactor - paint params are obsolete from 3.1.0 (but still used for backwards compatibility).
 class SignaturePaintParams {
   /// Color of line.
   final Color color;
@@ -35,7 +36,7 @@ class SignaturePaintParams {
   });
 }
 
-class CubicPathSetup {
+class SignaturePathSetup {
   /// Distance between two control points.
   final double threshold;
 
@@ -55,10 +56,11 @@ class CubicPathSetup {
   /// 0.5 - balanced pressure and velocity
   final double pressureRatio;
 
-  /// Additional arguments to setup path - typically used with {HandSignatureDrawer}
+  /// Additional arguments to setup path - typically used with custom {HandSignatureDrawer}
+  /// Only primitives should be stored in args [String, num, List, Map] - just structs that are supported with jsonEncode/jsonDecode converter.
   final Map<String, dynamic>? args;
 
-  const CubicPathSetup({
+  const SignaturePathSetup({
     this.threshold = 3.0,
     this.smoothRatio = 0.65,
     this.velocityRange = 2.0,
@@ -69,7 +71,7 @@ class CubicPathSetup {
         assert(velocityRange > 0.0),
         assert(pressureRatio >= 0.0 && pressureRatio <= 1.0);
 
-  factory CubicPathSetup.fromMap(Map<String, dynamic> data) => CubicPathSetup(
+  factory SignaturePathSetup.fromMap(Map<String, dynamic> data) => SignaturePathSetup(
         threshold: data['threshold'],
         smoothRatio: data['smoothRatio'],
         velocityRange: data['velocityRange'],
@@ -461,7 +463,7 @@ class CubicPath {
   /// [CubicArc] representation of path.
   final _arcs = <CubicArc>[];
 
-  final CubicPathSetup setup;
+  final SignaturePathSetup setup;
 
   /// Returns raw data of path.
   List<OffsetPoint> get points => _points;
@@ -496,7 +498,7 @@ class CubicPath {
   /// Line builder.
   /// [setup] - Path Variables Setup
   CubicPath({
-    this.setup = const CubicPathSetup(),
+    this.setup = const SignaturePathSetup(),
   }) {
     _maxVelocity = setup.velocityRange;
   }
@@ -660,6 +662,11 @@ class CubicPath {
       return;
     }
 
+    final pointsData = PathUtil.scale<OffsetPoint>(_points, ratio);
+    _points
+      ..clear()
+      ..addAll(pointsData);
+
     final arcData = PathUtil.scale<CubicArc>(_arcs, ratio);
     _arcs
       ..clear()
@@ -700,7 +707,7 @@ class HandSignatureControl extends ChangeNotifier {
   /// List of active paths.
   final _paths = <CubicPath>[];
 
-  late CubicPathSetup Function() setup;
+  late SignaturePathSetup Function() setup;
 
   /// Visual parameters of line painting.
   SignaturePaintParams? params;
@@ -733,21 +740,26 @@ class HandSignatureControl extends ChangeNotifier {
   bool get isFilled => _paths.isNotEmpty;
 
   /// Controls input from [HandSignature] and creates smooth signature path.
+  ///
+  /// [setup] dynamic setup for every new path. Setup can be also set later.
+  /// [initialSetup] default setup for each path (ignored if [setup] is provided).
+  ///
   /// [threshold] minimal distance between two points.
   /// [smoothRatio] smoothing ratio of curved parts.
   /// [velocityRange] controls velocity speed and dampening between points (only Shape and Arc drawing types using this property to control line width). aka how fast si signature drawn..
+  /// [pressureRatio] ratio between pressure and velocity. 0.0 = only velocity, 1.0 = only pressure
   HandSignatureControl({
     @Deprecated('Use {setup} or {initialSetup}') double threshold = 3.0,
     @Deprecated('Use {setup} or {initialSetup}') double smoothRatio = 0.65,
     @Deprecated('Use {setup} or {initialSetup}') double velocityRange = 2.0,
     @Deprecated('Use {setup} or {initialSetup}') double pressureRatio = 0.0,
-    CubicPathSetup Function()? setup,
-    CubicPathSetup? initialSetup,
+    SignaturePathSetup Function()? setup,
+    SignaturePathSetup? initialSetup,
   }) {
     this.setup = setup ??
         () =>
             initialSetup ??
-            CubicPathSetup(
+            SignaturePathSetup(
               threshold: threshold,
               smoothRatio: smoothRatio,
               velocityRange: velocityRange,
@@ -756,6 +768,9 @@ class HandSignatureControl extends ChangeNotifier {
   }
 
   factory HandSignatureControl.fromMap(Map<String, dynamic> data) => HandSignatureControl()..import(data);
+
+  /// Sets setup for next Path
+  void setSetup(SignaturePathSetup setup) => this.setup = () => setup;
 
   /// Starts new line at given [point].
   void startPath(Offset point, {double? pressure}) {
@@ -802,6 +817,7 @@ class HandSignatureControl extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Imports given [paths] and alters current signature data.
   @Deprecated('User {addPath}')
   void importPath(List<CubicPath> paths, [Size? bounds]) => addPath(paths, bounds);
 
@@ -821,18 +837,17 @@ class HandSignatureControl extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Removes last line.
-  bool stepBack() {
-    assert(!hasActivePath);
-
+  /// Removes last Path.
+  /// returns removed [CubicPath].
+  CubicPath? stepBack() {
     if (_paths.isNotEmpty) {
-      _paths.removeLast();
+      final path = _paths.removeLast();
       notifyListeners();
 
-      return true;
+      return path;
     }
 
-    return false;
+    return null;
   }
 
   /// Clears all data.
@@ -874,7 +889,7 @@ class HandSignatureControl extends ChangeNotifier {
       path.setScale(scale);
     });
 
-    //TODO: Called during rebuild, so notify must be postponed one frame - will be solved by widget/state
+    //TODO: Called during rebuild, so notify must be postponed one frame - should be solved by widget/state
     Future.delayed(Duration(), () => notifyListeners());
 
     return true;
@@ -900,7 +915,7 @@ class HandSignatureControl extends ChangeNotifier {
       final smoothRatio = data['smoothRatio'];
       final velocityRange = data['velocityRange'];
 
-      setup = () => CubicPathSetup(
+      setup = () => SignaturePathSetup(
             threshold: threshold,
             smoothRatio: smoothRatio,
             velocityRange: velocityRange,
@@ -911,7 +926,7 @@ class HandSignatureControl extends ChangeNotifier {
 
     for (int i = 0; i < count; i++) {
       final points = List.from(paths.elementAt(i));
-      final setup = v2 ? CubicPathSetup.fromMap(setups!.elementAt(i)) : this.setup();
+      final setup = v2 ? SignaturePathSetup.fromMap(setups!.elementAt(i)) : this.setup();
 
       final cp = CubicPath(setup: setup);
 
@@ -1113,7 +1128,6 @@ class HandSignatureControl extends ChangeNotifier {
     Color? background,
     double? strokeWidth,
     double? maxStrokeWidth,
-    SignatureDrawType type = SignatureDrawType.arc,
     HandSignatureDrawer? drawer,
     double border = 0.0,
     bool fit = true,
@@ -1140,32 +1154,48 @@ class HandSignatureControl extends ChangeNotifier {
     maxStrokeWidth ??= params!.maxStrokeWidth;
 
     final canvasRect = Rect.fromLTRB(0, 0, _areaSize.width, _areaSize.height);
-    final data = fit
-        ? PathUtil.fill(
-            _arcs,
-            pictureRect,
-            radius: maxStrokeWidth * 0.5,
-            border: border,
-          )
-        : PathUtil.fill(
-            _arcs,
-            pictureRect,
-            bound: canvasRect,
-            border: border,
-          );
-    final path = CubicPath().._arcs.addAll(data);
+
+    late PathSignaturePainter painter;
+
+    if (drawer != null) {
+      final bounds = PathUtil.boundsOf(_offsets, radius: maxStrokeWidth * 0.5);
+      final fitBox = bounds.size.scaleToFit(Size(width.toDouble(), height.toDouble()));
+      final rect = fit ? Rect.fromLTWH(0.0, 0.0, fitBox.width, fitBox.height) : Rect.fromLTWH(0.0, 0.0, width.toDouble(), height.toDouble());
+
+      final data = PathUtil.fillData(
+        _cubicLines,
+        rect,
+        bound: bounds,
+        border: maxStrokeWidth + border,
+      );
+
+      int i = 0;
+      painter = PathSignaturePainter(
+        paths: paths.map((e) => CubicPath(setup: e.setup).._lines.addAll(data[i++])).toList(),
+        drawer: drawer,
+      );
+    } else {
+      final data = fit
+          ? PathUtil.fill(
+              _arcs,
+              pictureRect,
+              radius: maxStrokeWidth * 0.5,
+              border: border,
+            )
+          : PathUtil.fill(
+              _arcs,
+              pictureRect,
+              bound: canvasRect,
+              border: border,
+            );
+
+      painter = PathSignaturePainter(
+        paths: [CubicPath().._arcs.addAll(data)],
+        drawer: ArcSignatureDrawer(color: color, width: strokeWidth, maxWidth: maxStrokeWidth),
+      );
+    }
 
     final recorder = PictureRecorder();
-    final painter = PathSignaturePainter(
-      paths: [path],
-      drawer: drawer ??
-          switch (type) {
-            SignatureDrawType.line => LineSignatureDrawer(color: color, width: strokeWidth),
-            SignatureDrawType.arc => ArcSignatureDrawer(color: color, width: strokeWidth, maxWidth: maxStrokeWidth),
-            SignatureDrawType.shape => ShapeSignatureDrawer(color: color, width: strokeWidth, maxWidth: maxStrokeWidth),
-          },
-    );
-
     final canvas = Canvas(
       recorder,
       Rect.fromPoints(
@@ -1193,7 +1223,6 @@ class HandSignatureControl extends ChangeNotifier {
     Color? background,
     double? strokeWidth,
     double? maxStrokeWidth,
-    SignatureDrawType type = SignatureDrawType.arc,
     HandSignatureDrawer? drawer,
     double border = 0.0,
     ImageByteFormat format = ImageByteFormat.png,
@@ -1206,7 +1235,6 @@ class HandSignatureControl extends ChangeNotifier {
       background: background,
       strokeWidth: strokeWidth,
       maxStrokeWidth: maxStrokeWidth,
-      type: type,
       drawer: drawer,
       border: border,
       fit: fit,

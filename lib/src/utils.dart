@@ -68,6 +68,8 @@ extension SizeExt on Size {
 
 //TODO: clean up
 class PathUtil {
+  const PathUtil._();
+
   static Rect bounds(List<Offset> data, {double minSize = 2.0, double radius = 0.0}) {
     double left = data[0].dx;
     double top = data[0].dy;
