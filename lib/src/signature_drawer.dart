@@ -134,6 +134,8 @@ class ShapeSignatureDrawer extends HandSignatureDrawer {
 /// A [HandSignatureDrawer] that dynamically selects the drawing type based on
 /// arguments provided in the [CubicPath]'s setup.
 class DynamicSignatureDrawer extends HandSignatureDrawer {
+  final SignatureDrawType type;
+
   /// The color used to paint the arcs.
   final Color color;
 
@@ -144,6 +146,7 @@ class DynamicSignatureDrawer extends HandSignatureDrawer {
   final double maxWidth;
 
   const DynamicSignatureDrawer({
+    this.type = SignatureDrawType.shape,
     this.width = 1.0,
     this.maxWidth = 10.0,
     this.color = Colors.black,
@@ -153,7 +156,7 @@ class DynamicSignatureDrawer extends HandSignatureDrawer {
   void paint(Canvas canvas, Size size, List<CubicPath> paths) {
     for (final path in paths) {
       // Retrieve drawing parameters from path arguments, with fallbacks
-      final type = path.setup.args?['type'] ?? SignatureDrawType.shape.name;
+      final type = path.setup.args?['type'] ?? this.type.name;
       final color = Color(path.setup.args?['color'] ?? this.color.toARGB32());
       final width = path.setup.args?['width'] ?? this.width;
       final maxWidth = path.setup.args?['max_width'] ?? this.maxWidth;
