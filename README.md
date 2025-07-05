@@ -78,16 +78,16 @@ This widget handles the visual style of the signature curve.
 - `control`: The `HandSignatureControl` that processes input and stores the raw data.
 - `drawer`: The `HandSignatureDrawer` that handles the painting of the signature.
   - Comes with prebuild Drawers: 
-    - `LineSignatureDrawer`:
-    - `ShapeSignatureDrawer`: 
-    - `ArcSignatureDrawer`: 
-    - `DynamicSignatureDrawer`: dynamically selects the drawing type based on provided args
-    - `MultiSignatureDrawer`: combines multiple drawers, allowing for complex effects
+    - `LineSignatureDrawer`: Basic line with single line width.
+    - `ShapeSignatureDrawer`: Default drawer, mimics ink pen. Various line with based on velocity and/or pressure. Also good for exporting in svg.
+    - `ArcSignatureDrawer`: Mimics ink pen, less performant then Shape drawer. Default drawer when exporting toImage.
+    - `DynamicSignatureDrawer`: Dynamically selects the drawing type based on provided args {'type' = 'shape', 'color' = 0xFFAA00BB, 'width' = 2.0}
+    - `MultiSignatureDrawer`: Combines multiple drawers, allowing for complex effects
 
 ### Custom Drawer
 
-You can create a custom drawer by extending `HandSignatureDrawer` and implementing the `paint`
-method. This allows for full control over how the signature is rendered.
+You can create a custom drawer by extending `HandSignatureDrawer` and implementing the `paint` method.
+This allows for full control over how the signature is rendered.
 
 ```dart
 class MyCustomDrawer extends HandSignatureDrawer {
@@ -98,12 +98,14 @@ class MyCustomDrawer extends HandSignatureDrawer {
 }
 ```
 
+![Custom Drawer](https://raw.githubusercontent.com/RomanBase/hand_signature/master/doc/custom_drawer.png)
+
 ---
 
 ## Exporting
 
-You can modify properties like canvas size, stroke width, and color during export. The most common
-export formats are SVG and PNG.
+You can modify properties like canvas size, stroke width, and color during export.
+The most common export formats are SVG and PNG. State can be saved with `toMap` and restored with `import` method.
 
 ```dart
 
@@ -113,29 +115,24 @@ final control = HandSignatureControl();
 final svg = control.toSvg();
 
 // Export to PNG
-final png = await
-control.toImage
-();
+final png = await control.toImage();
 
 // Export to raw data
 final json = control.toMap();
 
 // Import from raw data
-control.importData
-(
-json
-);
+control.impor(json);
 ```
 
 - **SVG**:
-    - `shape`: Generates a reasonably small file that is well-supported by most programs.
-    - `arc`: Generates a larger SVG file, which some programs may struggle to handle.
-    - `line`: A simple Bezier curve.
+  - `shape`: Generates a reasonably small file that is well-supported by most programs.
+  - `arc`: Generates a larger SVG file, which some programs may struggle to handle.
+  - `line`: A simple Bezier curve.
 - **Image**: Export to an `Image` or `Picture` object, which can then be converted to PNG bytes.
-- **JSON/Map**: Export the current state as raw data, which can be used later to restore the
-  signature.
+  - `arc`: Default drawer when exporting image data.
+  - `drawer`: Specifies `HandSignatureDrawer` to use during canvas export.
+- **JSON/Map**: Export the current state as raw data, which can be used later to restore the signature.
 
 ### Displaying a Saved SVG
 
-You can display an exported SVG string using a library
-like [flutter_svg](https://pub.dev/packages/flutter_svg).
+You can display an exported SVG string using a library like [flutter_svg](https://pub.dev/packages/flutter_svg).

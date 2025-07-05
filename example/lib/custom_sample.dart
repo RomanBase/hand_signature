@@ -16,9 +16,7 @@ class CustomSample extends StatefulWidget {
 class CustomSampleState extends State {
   late final control = HandSignatureControl(
     setup: () => SignaturePathSetup(args: {
-      'color': Color.fromARGB(255, random.nextInt(255), random.nextInt(255),
-              random.nextInt(255))
-          .toARGB32(),
+      'color': Color.fromARGB(255, random.nextInt(255), random.nextInt(255), random.nextInt(255)).toARGB32(),
     }),
   );
 
@@ -67,6 +65,17 @@ class CustomSampleState extends State {
               ),
             ),
           ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8.0),
+            child: Row(
+              children: [
+                ElevatedButton(
+                  onPressed: () => control.stepBack(),
+                  child: Icon(Icons.navigate_before),
+                ),
+              ],
+            ),
+          ),
           //Buttons
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 8.0),
@@ -85,8 +94,7 @@ class CustomSampleState extends State {
                         savedState.value = null;
                       }
                     },
-                    child: Text(
-                        savedState.value == null ? 'save state' : 'load state'),
+                    child: Text(savedState.value == null ? 'save state' : 'load state'),
                   ),
                 ),
                 Expanded(
