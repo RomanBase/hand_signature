@@ -78,10 +78,10 @@ class ArcSignatureDrawer extends HandSignatureDrawer {
       ..strokeWidth = width;
 
     for (final path in paths) {
-      path.arcs.forEach((arc) {
+      for (final arc in path.arcs) {
         paint.strokeWidth = width + (maxWidth - width) * arc.size;
         canvas.drawPath(arc.path, paint);
-      });
+      }
     }
   }
 }
@@ -114,19 +114,16 @@ class ShapeSignatureDrawer extends HandSignatureDrawer {
       if (path.isFilled) {
         if (path.isDot) {
           // If it's a dot, draw a circle
-          canvas.drawCircle(
-              path.lines[0], path.lines[0].startRadius(width, maxWidth), paint);
+          canvas.drawCircle(path.lines[0], path.lines[0].startRadius(width, maxWidth), paint);
         } else {
           // Otherwise, draw the filled shape path
-          canvas.drawPath(
-              PathUtil.toShapePath(path.lines, width, maxWidth), paint);
+          canvas.drawPath(PathUtil.toShapePath(path.lines, width, maxWidth), paint);
 
           // Draw circles at the start and end of the path for a smoother look
           final first = path.lines.first;
           final last = path.lines.last;
 
-          canvas.drawCircle(
-              first.start, first.startRadius(width, maxWidth), paint);
+          canvas.drawCircle(first.start, first.startRadius(width, maxWidth), paint);
           canvas.drawCircle(last.end, last.endRadius(width, maxWidth), paint);
         }
       }
@@ -137,14 +134,29 @@ class ShapeSignatureDrawer extends HandSignatureDrawer {
 /// A [HandSignatureDrawer] that dynamically selects the drawing type based on
 /// arguments provided in the [CubicPath]'s setup.
 class DynamicSignatureDrawer extends HandSignatureDrawer {
+  /// The color used to paint the arcs.
+  final Color color;
+
+  /// The minimal stroke width of the arcs.
+  final double width;
+
+  /// The maximal stroke width of the arcs.
+  final double maxWidth;
+
+  const DynamicSignatureDrawer({
+    this.width = 1.0,
+    this.maxWidth = 10.0,
+    this.color = Colors.black,
+  });
+
   @override
   void paint(Canvas canvas, Size size, List<CubicPath> paths) {
     for (final path in paths) {
       // Retrieve drawing parameters from path arguments, with fallbacks
       final type = path.setup.args?['type'] ?? SignatureDrawType.shape.name;
-      final color = Color(path.setup.args?['color'] ?? 0xFF000000);
-      final width = path.setup.args?['width'] ?? 2.0;
-      final maxWidth = path.setup.args?['max_width'] ?? 10.0;
+      final color = Color(path.setup.args?['color'] ?? this.color.toARGB32());
+      final width = path.setup.args?['width'] ?? this.width;
+      final maxWidth = path.setup.args?['max_width'] ?? this.maxWidth;
 
       HandSignatureDrawer drawer;
 
@@ -154,17 +166,14 @@ class DynamicSignatureDrawer extends HandSignatureDrawer {
           drawer = LineSignatureDrawer(color: color, width: width);
           break;
         case 'arc':
-          drawer = ArcSignatureDrawer(
-              color: color, width: width, maxWidth: maxWidth);
+          drawer = ArcSignatureDrawer(color: color, width: width, maxWidth: maxWidth);
           break;
         case 'shape':
-          drawer = ShapeSignatureDrawer(
-              color: color, width: width, maxWidth: maxWidth);
+          drawer = ShapeSignatureDrawer(color: color, width: width, maxWidth: maxWidth);
           break;
         default:
           // Default to ShapeSignatureDrawer if type is unknown or not provided
-          drawer = ShapeSignatureDrawer(
-              color: color, width: width, maxWidth: maxWidth);
+          drawer = ShapeSignatureDrawer(color: color, width: width, maxWidth: maxWidth);
       }
 
       // Paint the current path using the selected drawer

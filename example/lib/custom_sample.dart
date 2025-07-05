@@ -14,12 +14,17 @@ class CustomSample extends StatefulWidget {
 }
 
 class CustomSampleState extends State {
+  double pressureRatio = 0.0;
+  SignatureDrawType drawType = SignatureDrawType.shape;
+
   late final control = HandSignatureControl(
-    setup: () => SignaturePathSetup(args: {
-      'color': Color.fromARGB(255, random.nextInt(255), random.nextInt(255),
-              random.nextInt(255))
-          .toARGB32(),
-    }),
+    setup: () => SignaturePathSetup(
+      pressureRatio: pressureRatio,
+      args: {
+        'type': drawType.name,
+        'color': Color.fromARGB(255, random.nextInt(255), random.nextInt(255), random.nextInt(255)).toARGB32(),
+      },
+    ),
   );
 
   final rawImage = ValueNotifier<ByteData?>(null);
@@ -70,10 +75,63 @@ class CustomSampleState extends State {
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 8.0),
             child: Row(
+              spacing: 8.0,
               children: [
                 ElevatedButton(
                   onPressed: () => control.stepBack(),
                   child: Icon(Icons.navigate_before),
+                ),
+                Expanded(
+                  child: Container(
+                    color: Colors.white,
+                    child: DropdownButton(
+                      value: drawType,
+                      items: [
+                        DropdownMenuItem(
+                          value: SignatureDrawType.line,
+                          child: Text('Line'),
+                        ),
+                        DropdownMenuItem(
+                          value: SignatureDrawType.shape,
+                          child: Text('Shape'),
+                        ),
+                        DropdownMenuItem(
+                          value: SignatureDrawType.arc,
+                          child: Text('Arc'),
+                        ),
+                      ],
+                      padding: EdgeInsets.symmetric(horizontal: 8.0),
+                      onChanged: (value) => setState(() {
+                        drawType = value ?? SignatureDrawType.shape;
+                      }),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Container(
+                    color: Colors.white,
+                    child: DropdownButton(
+                      value: pressureRatio,
+                      items: [
+                        DropdownMenuItem(
+                          value: 0.0,
+                          child: Text('Velocity'),
+                        ),
+                        DropdownMenuItem(
+                          value: 0.5,
+                          child: Text('Balanced'),
+                        ),
+                        DropdownMenuItem(
+                          value: 1.0,
+                          child: Text('Pressure'),
+                        ),
+                      ],
+                      padding: EdgeInsets.symmetric(horizontal: 8.0),
+                      onChanged: (value) => setState(() {
+                        pressureRatio = value ?? 0.0;
+                      }),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -96,8 +154,7 @@ class CustomSampleState extends State {
                         savedState.value = null;
                       }
                     },
-                    child: Text(
-                        savedState.value == null ? 'save state' : 'load state'),
+                    child: Text(savedState.value == null ? 'save state' : 'load state'),
                   ),
                 ),
                 Expanded(
@@ -153,7 +210,7 @@ class CustomSignatureDrawer extends HandSignatureDrawer {
     for (final path in paths) {
       final color = Color(path.setup.args?['color'] ?? 0xFF000000);
 
-      ShapeSignatureDrawer(
+      DynamicSignatureDrawer(
         width: 2.0,
         maxWidth: 12.0,
         color: color,

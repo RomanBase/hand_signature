@@ -639,7 +639,7 @@ class CubicPath {
   /// This is used when the path consists of a single, stationary point.
   void _addDot(CubicLine line) {
     final size = 0.25 +
-        _lineSize(_currentVelocity, _maxVelocity, line.start.pressure) * 0.5;
+        _lineSize(_currentVelocity, _maxVelocity, line.end.pressure) * 0.5;
     line.startSize = size;
 
     _lines.add(line);

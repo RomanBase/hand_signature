@@ -8,6 +8,7 @@
   - `MultiSignatureDrawer`: Allows combining multiple drawers for complex visual effects.
 - **Pressure Sensitivity**: The signature input now captures pressure data from supported devices (like a stylus). This allows for more realistic and expressive signatures, as the line thickness can vary with pressure. The `pressureRatio` in `SignaturePathSetup` can be used to balance between pressure and velocity.
 - **Flexible Path Configuration**: Introduced `SignaturePathSetup` to provide a more structured way to configure path properties like `smoothRatio`, `velocityRange`, and `pressureRatio`. It also includes an `args` map for passing custom data to drawers.
+- Also Comes with updated examples.
 
 ### State Handling
 - **Data-Driven Rendering**: The rendering pipeline has been refactored to be more data-driven, with `CubicPath` now holding all the necessary information for drawing, including the setup parameters.
