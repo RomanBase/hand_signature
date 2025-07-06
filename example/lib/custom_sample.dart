@@ -24,7 +24,7 @@ class CustomSampleState extends State {
         'type': drawType.name,
         'color': Color.fromARGB(255, random.nextInt(255), random.nextInt(255),
                 random.nextInt(255))
-            .toARGB32(),
+            .value,
       },
     ),
   );
