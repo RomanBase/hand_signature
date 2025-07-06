@@ -1,4 +1,4 @@
-## [3.1.0] - Pressure, Custom Path Painter, Path Setup 
+## [3.1.0] - Pressure, Custom Drawer, Path Setup 
 - **Custom Drawing with `HandSignatureDrawer`**: Introduced a new abstract class `HandSignatureDrawer` that allows for complete customization of how signatures are drawn. This provides developers with the flexibility to implement their own drawing logic by extending this class.
 - **Built-in Drawers**: Added several built-in drawers for common use cases:
   - `LineSignatureDrawer`: Draws the path as simple lines.
@@ -6,13 +6,14 @@
   - `ShapeSignatureDrawer`: Draws the path as a filled shape.
   - `DynamicSignatureDrawer`: Dynamically selects a drawer based on parameters in the path data.
   - `MultiSignatureDrawer`: Allows combining multiple drawers for complex visual effects.
-- **Pressure Sensitivity**: The signature input now captures pressure data from supported devices (like a stylus). This allows for more realistic and expressive signatures, as the line thickness can vary with pressure. The `pressureRatio` in `SignaturePathSetup` can be used to balance between pressure and velocity.
-- **Flexible Path Configuration**: Introduced `SignaturePathSetup` to provide a more structured way to configure path properties like `smoothRatio`, `velocityRange`, and `pressureRatio`. It also includes an `args` map for passing custom data to drawers.
-- Also Comes with updated examples.
+- **Pressure Sensitivity**: The signature input now captures pressure data from supported devices. The line thickness can vary with pressure. The `pressureRatio` in `SignaturePathSetup` can be used to balance between pressure and velocity.
+- **Path Configuration**: Introduced `SignaturePathSetup` to provide a more structured way to configure path properties like `smoothRatio`, `velocityRange`, and `pressureRatio`. It also includes an `args` map for passing custom data to drawers.
 
 ### State Handling
-- **Data-Driven Rendering**: The rendering pipeline has been refactored to be more data-driven, with `CubicPath` now holding all the necessary information for drawing, including the setup parameters.
-- **Improved Data Serialization**: The `toMap` and `fromMap` methods in `HandSignatureControl` have been updated to version 2, which includes the `SignaturePathSetup` for each path. This makes the exported data more self-contained and easier to work with.
+- **Rendering**: The drawing pipeline has been refactored to be more customizable, with `SignaturePathSetup` that can hold all the necessary variables for drawer.
+- **Data Serialization**: The `toMap` and `import` methods in `HandSignatureControl` have been updated to version `2`, which includes the `SignaturePathSetup` for each path and `pressure` value for each point.
+
+- **Also Comes with updated examples.**
 
 ## [3.0.3] - Updated Gesture Recognizer
 Now can specify input type - `PointerDeviceKind`.
