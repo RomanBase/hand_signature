@@ -139,6 +139,8 @@ class SignatureExample extends StatelessWidget {
 
                       rawImage.value = await control.toImage(
                         color: Colors.purple,
+                        background: Colors.grey,
+                        fit: true,
                       );
                     },
                     child: Text('export'),
@@ -210,7 +212,10 @@ class SignatureExample extends StatelessWidget {
                       } else {
                         return Padding(
                           padding: EdgeInsets.all(8.0),
-                          child: Image.memory(data.buffer.asUint8List()),
+                          child: Image.memory(
+                            data.buffer.asUint8List(),
+                            fit: BoxFit.fitHeight,
+                          ),
                         );
                       }
                     },

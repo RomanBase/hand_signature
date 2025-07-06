@@ -78,7 +78,8 @@ class ArcSignatureDrawer extends HandSignatureDrawer {
       ..strokeWidth = width;
 
     for (final path in paths) {
-      for (final arc in path.arcs) {
+      final arcs = path.toArcs();
+      for (final arc in arcs) {
         paint.strokeWidth = width + (maxWidth - width) * arc.size;
         canvas.drawPath(arc.path, paint);
       }
@@ -114,16 +115,19 @@ class ShapeSignatureDrawer extends HandSignatureDrawer {
       if (path.isFilled) {
         if (path.isDot) {
           // If it's a dot, draw a circle
-          canvas.drawCircle(path.lines[0], path.lines[0].startRadius(width, maxWidth), paint);
+          canvas.drawCircle(
+              path.lines[0], path.lines[0].startRadius(width, maxWidth), paint);
         } else {
           // Otherwise, draw the filled shape path
-          canvas.drawPath(PathUtil.toShapePath(path.lines, width, maxWidth), paint);
+          canvas.drawPath(
+              PathUtil.toShapePath(path.lines, width, maxWidth), paint);
 
           // Draw circles at the start and end of the path for a smoother look
           final first = path.lines.first;
           final last = path.lines.last;
 
-          canvas.drawCircle(first.start, first.startRadius(width, maxWidth), paint);
+          canvas.drawCircle(
+              first.start, first.startRadius(width, maxWidth), paint);
           canvas.drawCircle(last.end, last.endRadius(width, maxWidth), paint);
         }
       }
@@ -169,14 +173,17 @@ class DynamicSignatureDrawer extends HandSignatureDrawer {
           drawer = LineSignatureDrawer(color: color, width: width);
           break;
         case 'arc':
-          drawer = ArcSignatureDrawer(color: color, width: width, maxWidth: maxWidth);
+          drawer = ArcSignatureDrawer(
+              color: color, width: width, maxWidth: maxWidth);
           break;
         case 'shape':
-          drawer = ShapeSignatureDrawer(color: color, width: width, maxWidth: maxWidth);
+          drawer = ShapeSignatureDrawer(
+              color: color, width: width, maxWidth: maxWidth);
           break;
         default:
           // Default to ShapeSignatureDrawer if type is unknown or not provided
-          drawer = ShapeSignatureDrawer(color: color, width: width, maxWidth: maxWidth);
+          drawer = ShapeSignatureDrawer(
+              color: color, width: width, maxWidth: maxWidth);
       }
 
       // Paint the current path using the selected drawer

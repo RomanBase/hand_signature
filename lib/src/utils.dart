@@ -88,6 +88,8 @@ extension SizeExt on Size {
 
     return this * scale;
   }
+
+  Rect toRect() => Rect.fromLTRB(0.0, 0.0, width, height);
 }
 
 /// A utility class providing static methods for common path manipulation and geometric calculations.

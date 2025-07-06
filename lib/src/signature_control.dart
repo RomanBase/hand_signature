@@ -359,17 +359,16 @@ class CubicLine extends Offset {
   /// [deltaSize] The change in size across the arc.
   /// [precision] The precision for generating arc segments (higher value means more segments).
   /// Returns a list of [CubicArc] objects.
-  List<CubicArc> toArc(double size, double deltaSize,
-      {double precision = 0.5}) {
+  List<CubicArc> toArc({double? deltaSize, double precision = 0.5}) {
     final list = <CubicArc>[];
 
     final steps = (_distance * precision).floor().clamp(1, 30);
 
     Offset start = this.start;
-    for (int i = 1; i < steps; i++) {
+    for (int i = 0; i < steps; i++) {
       final t = (i + 1) / steps;
       final loc = point(t);
-      final width = size + deltaSize * t;
+      final width = startSize + (deltaSize ?? (endSize - startSize)) * t;
 
       list.add(CubicArc(
         start: start,
@@ -555,9 +554,6 @@ class CubicPath {
   /// The list of [CubicLine] segments derived from the raw points, forming the smoothed path.
   final _lines = <CubicLine>[];
 
-  /// The list of [CubicArc] segments, used for drawing the path as a series of arcs.
-  final _arcs = <CubicArc>[];
-
   /// The setup parameters for this path, including smoothing, velocity, and pressure ratios.
   final SignaturePathSetup setup;
 
@@ -566,9 +562,6 @@ class CubicPath {
 
   /// Returns an unmodifiable list of the [CubicLine] segments that form this path.
   List<CubicLine> get lines => _lines;
-
-  /// Returns an unmodifiable list of the [CubicArc] segments that approximate this path.
-  List<CubicArc> get arcs => _arcs;
 
   /// The first point in the path, or `null` if the path is empty.
   Offset? get _origin => _points.isNotEmpty ? _points[0] : null;
@@ -597,6 +590,16 @@ class CubicPath {
     this.setup = const SignaturePathSetup(),
   }) {
     _maxVelocity = setup.velocityRange;
+  }
+
+  List<CubicArc> toArcs() {
+    final arcs = <CubicArc>[];
+
+    for (final line in _lines) {
+      arcs.addAll(line.toArc());
+    }
+
+    return arcs;
   }
 
   /// Adds a [CubicLine] segment to the path.
@@ -629,7 +632,7 @@ class CubicPath {
     line.startSize = _currentSize;
     line.endSize = endSize;
 
-    _arcs.addAll(line.toArc(_currentSize, endSize - _currentSize));
+    //_arcs.addAll(line.toArc());
 
     _currentSize = endSize;
     _currentVelocity = combinedVelocity;
@@ -641,9 +644,10 @@ class CubicPath {
     final size = 0.25 +
         _lineSize(_currentVelocity, _maxVelocity, line.end.pressure) * 0.5;
     line.startSize = size;
+    line.endSize = size;
 
     _lines.add(line);
-    _arcs.addAll(line.toArc(size, 0.0));
+    //_arcs.addAll(line.toArc(deltaSize:  0.0));
   }
 
   /// Calculates the line size (thickness) based on the given [velocity], maximum velocity [max], and optional [pressure].
@@ -788,22 +792,20 @@ class CubicPath {
       ..clear()
       ..addAll(pointsData);
 
-    final arcData = PathUtil.scale<CubicArc>(_arcs, ratio);
-    _arcs
-      ..clear()
-      ..addAll(arcData);
-
     final lineData = PathUtil.scale<CubicLine>(_lines, ratio);
     _lines
       ..clear()
       ..addAll(lineData);
   }
 
+  CubicPath copy() => CubicPath(setup: setup)
+    .._points.addAll(_points)
+    .._lines.addAll(_lines);
+
   /// Clears all data associated with this path, effectively resetting it.
   void clear() {
     _points.clear();
     _lines.clear();
-    _arcs.clear();
   }
 
   /// Checks if this [CubicPath] is equal to [other] based on their raw points.
@@ -851,9 +853,6 @@ class HandSignatureControl extends ChangeNotifier {
   /// Returns a lazy list of all [CubicLine] segments from all paths.
   List<List<CubicLine>> get _cubicLines =>
       _paths.map((data) => data.lines).toList();
-
-  /// Returns a lazy, flattened list of all [CubicArc] segments from all paths.
-  List<CubicArc> get _arcs => _paths.expand((data) => data.arcs).toList();
 
   /// Returns a flattened list of all [CubicLine] segments across all paths.
   List<CubicLine> get lines => _paths.expand((data) => data.lines).toList();
@@ -1118,29 +1117,30 @@ class HandSignatureControl extends ChangeNotifier {
         ? Rect.fromLTWH(0.0, 0.0, fitBox.width, fitBox.height)
         : Rect.fromLTWH(0.0, 0.0, width.toDouble(), height.toDouble());
 
-    if (type == SignatureDrawType.line || type == SignatureDrawType.shape) {
-      final data = PathUtil.fillData(
-        _cubicLines,
-        rect,
-        bound: bounds,
-        border: maxStrokeWidth + border,
-      );
+    final data = PathUtil.fillData(
+      _cubicLines,
+      rect,
+      bound: bounds,
+      border: maxStrokeWidth + border,
+    );
 
-      if (type == SignatureDrawType.line) {
+    switch (type) {
+      case SignatureDrawType.line:
         return _exportPathSvg(data, rect.size, color, strokeWidth);
-      } else {
+      case SignatureDrawType.shape:
         return _exportShapeSvg(
             data, rect.size, color, strokeWidth, maxStrokeWidth);
-      }
-    } else {
-      final data = PathUtil.fill(
-        _arcs,
-        rect,
-        bound: bounds,
-        border: maxStrokeWidth + border,
-      );
+      case SignatureDrawType.arc:
+        final arcs = <CubicArc>[];
 
-      return _exportArcSvg(data, rect.size, color, strokeWidth, maxStrokeWidth);
+        for (final lines in data) {
+          for (final line in lines) {
+            arcs.addAll(line.toArc());
+          }
+        }
+
+        return _exportArcSvg(
+            arcs, rect.size, color, strokeWidth, maxStrokeWidth);
     }
   }
 
@@ -1282,18 +1282,14 @@ class HandSignatureControl extends ChangeNotifier {
     double? maxStrokeWidth,
     HandSignatureDrawer? drawer,
     double border = 0.0,
-    bool fit = true,
+    bool fit = false,
   }) {
     if (!isFilled) {
       return null;
     }
 
-    final pictureRect = Rect.fromLTRB(
-      0.0,
-      0.0,
-      width.toDouble(),
-      height.toDouble(),
-    );
+    final outputArea =
+        Rect.fromLTWH(0.0, 0.0, width.toDouble(), height.toDouble());
 
     params ??= SignaturePaintParams(
       color: Colors.black,
@@ -1301,72 +1297,45 @@ class HandSignatureControl extends ChangeNotifier {
       maxStrokeWidth: 10.0,
     );
 
-    color ??= params!.color;
-    strokeWidth ??= params!.strokeWidth;
     maxStrokeWidth ??= params!.maxStrokeWidth;
 
-    final canvasRect = Rect.fromLTRB(0, 0, _areaSize.width, _areaSize.height);
+    final bounds = PathUtil.boundsOf(_offsets, radius: maxStrokeWidth * 0.5);
 
-    late PathSignaturePainter painter;
+    final data = PathUtil.fillData(
+      _cubicLines,
+      outputArea,
+      bound: fit
+          ? bounds
+          : bounds.size
+              .scaleToFit(Size(width.toDouble(), height.toDouble()))
+              .toRect(),
+      border: maxStrokeWidth + border,
+    );
 
-    if (drawer != null) {
-      final bounds = PathUtil.boundsOf(_offsets, radius: maxStrokeWidth * 0.5);
-      final fitBox =
-          bounds.size.scaleToFit(Size(width.toDouble(), height.toDouble()));
-      final rect = fit
-          ? Rect.fromLTWH(0.0, 0.0, fitBox.width, fitBox.height)
-          : Rect.fromLTWH(0.0, 0.0, width.toDouble(), height.toDouble());
-
-      final data = PathUtil.fillData(
-        _cubicLines,
-        rect,
-        bound: bounds,
-        border: maxStrokeWidth + border,
-      );
-
-      int i = 0;
-      painter = PathSignaturePainter(
-        paths: paths
-            .map((e) => CubicPath(setup: e.setup).._lines.addAll(data[i++]))
-            .toList(),
-        drawer: drawer,
-      );
-    } else {
-      final data = fit
-          ? PathUtil.fill(
-              _arcs,
-              pictureRect,
-              radius: maxStrokeWidth * 0.5,
-              border: border,
-            )
-          : PathUtil.fill(
-              _arcs,
-              pictureRect,
-              bound: canvasRect,
-              border: border,
-            );
-
-      painter = PathSignaturePainter(
-        paths: [CubicPath().._arcs.addAll(data)],
-        drawer: ArcSignatureDrawer(
-            color: color, width: strokeWidth, maxWidth: maxStrokeWidth),
-      );
-    }
+    int i = 0;
+    final painter = PathSignaturePainter(
+      paths: paths
+          .map((e) => CubicPath(setup: e.setup).._lines.addAll(data[i++]))
+          .toList(),
+      drawer: drawer ??
+          ArcSignatureDrawer(
+            color: color ?? params!.color,
+            width: strokeWidth ?? params!.strokeWidth,
+            maxWidth: maxStrokeWidth,
+          ),
+    );
 
     final recorder = PictureRecorder();
     final canvas = Canvas(
       recorder,
-      Rect.fromPoints(
-        Offset(0.0, 0.0),
-        Offset(width.toDouble(), height.toDouble()),
-      ),
+      outputArea,
     );
 
     if (background != null) {
       canvas.drawColor(background, BlendMode.src);
     }
 
-    painter.paint(canvas, Size(width.toDouble(), height.toDouble()));
+    painter.paint(canvas, outputArea.size);
 
     return recorder.endRecording();
   }
