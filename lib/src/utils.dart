@@ -12,7 +12,19 @@ extension ColorEx on Color {
   /// Returns the hexadecimal string representation of this color,
   /// excluding the alpha component (e.g., '#RRGGBB').
   String get hexValue =>
-      '#${toARGB32().toRadixString(16)}'.replaceRange(1, 3, '');
+      '#${_toARGB32().toRadixString(16)}'.replaceRange(1, 3, '');
+
+  /// {toARGB32} was introduced in Flutter 3.28
+  int _toARGB32() {
+    int floatToInt8(double x) {
+      return (x * 255.0).round() & 0xff;
+    }
+
+    return floatToInt8(a) << 24 |
+        floatToInt8(r) << 16 |
+        floatToInt8(g) << 8 |
+        floatToInt8(b) << 0;
+  }
 }
 
 /// Extension methods for [Offset] to provide vector and geometric utility functions.
