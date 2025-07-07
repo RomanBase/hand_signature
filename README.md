@@ -55,7 +55,7 @@ final widget = HandSignature(
 
 ## `HandSignatureControl`
 
-This class handles the "math" behind the signature, controlling input touches and managing the
+This class handles the 'math' behind the signature, controlling input touches and managing the
 control points of the signature curve. Setup was moved to `CubicPathSetup` and is stored per path.
 
 - `threshold`: (LP) Controls the minimal distance between two points. A higher distance creates a
@@ -73,21 +73,21 @@ control points of the signature curve. Setup was moved to `CubicPathSetup` and i
 
 ## `HandSignature`
 
-This widget handles the visual style of the signature curve.
+This widget handles touch gestures and draws curve on canvas.
 
 - `control`: The `HandSignatureControl` that processes input and stores the raw data.
 - `drawer`: The `HandSignatureDrawer` that handles the painting of the signature.
   - Comes with prebuild Drawers: 
     - `LineSignatureDrawer`: Basic line with single line width.
-    - `ShapeSignatureDrawer`: Default drawer, mimics ink pen. Various line with based on velocity and/or pressure. Also good for exporting in svg.
+    - `ShapeSignatureDrawer`: Default drawer, mimics ink pen. Various line width based on the velocity and/or pressure. Also good option for exporting to svg file.
     - `ArcSignatureDrawer`: Mimics ink pen, less performant then Shape drawer. Default drawer when exporting toImage.
-    - `DynamicSignatureDrawer`: Dynamically selects the drawing type based on provided args {'type' = 'shape', 'color' = 0xFFAA00BB, 'width' = 2.0}
-    - `MultiSignatureDrawer`: Combines multiple drawers, allowing for complex effects
+    - `DynamicSignatureDrawer`: Dynamically selects the drawing type based on provided args {'type' = 'shape', 'color' = 0xFFAA00BB, 'width' = 2.0}.
+    - `MultiSignatureDrawer`: Combines multiple drawers, allowing for complex effects and layering.
 
 ### Custom Drawer
 
 You can create a custom drawer by extending `HandSignatureDrawer` and implementing the `paint` method.
-This allows for full control over how the signature is rendered.
+This allows the full control over how the signature is rendered.
 
 ```dart
 class MyCustomDrawer extends HandSignatureDrawer {
@@ -104,8 +104,11 @@ class MyCustomDrawer extends HandSignatureDrawer {
 
 ## Exporting
 
-You can modify properties like canvas size, stroke width, and color during export.
-The most common export formats are SVG and PNG. State can be saved with `toMap` and restored with `import` method.
+You can modify properties like canvas size, stroke width, and color during export. Also you can provide your custom drawer when exporting to image.
+The most common export formats are SVG and PNG.
+During export, data are **re-rendered** with preferred setup and output dimension.
+
+**State** can be saved with `toMap` and restored with `import` method.
 
 ```dart
 
@@ -115,7 +118,13 @@ final control = HandSignatureControl();
 final svg = control.toSvg();
 
 // Export to PNG
-final png = await control.toImage();
+final png = await control.toImage(
+  width: 512,
+  height: 512,
+  drawer: ShapeSignatureDrawer(
+    color: Colors.black,
+  ),
+);
 
 // Export to raw data
 final json = control.toMap();
@@ -131,8 +140,13 @@ control.impor(json);
 - **Image**: Export to an `Image` or `Picture` object, which can then be converted to PNG bytes.
   - `arc`: Default drawer when exporting image data.
   - `drawer`: Specifies `HandSignatureDrawer` to use during canvas export.
-- **JSON/Map**: Export the current state as raw data, which can be used later to restore the signature.
+- **JSON/Map**: Export the current state as a raw data, which can be used later to restore the signature.
+  - data are exported also with `timestamp` and `pressure` information for each point.
 
-### Displaying a Saved SVG
+```dart
 
-You can display an exported SVG string using a library like [flutter_svg](https://pub.dev/packages/flutter_svg).
+```
+
+### Displaying an exported SVG file
+
+You can display an exported SVG file using a library like [flutter_svg](https://pub.dev/packages/flutter_svg).
