@@ -26,6 +26,8 @@ The signature pad drawing is based on Cubic Bézier curves and offers a choice b
 Here is a simple example of how to use the signature pad.
 
 ```dart
+import 'package:hand_signature/signature.dart';
+
 final control = HandSignatureControl(
   initialSetup: SignaturePathSetup(
     threshold: 5.0,
